@@ -25,7 +25,7 @@
     U.cmd('panel', 'district');
     // every screen and every tab
     const TABS = { report: ['summary', 'events', 'battles', 'offers'], units: ['all', 'idle', 'assigned', 'injured'], armory: ['weapons', 'armor', 'cyber', 'special'],
-      intel: ['threats', 'enemy', 'districts', 'espionage', 'economy'], settings: ['saves', 'gameplay', 'session'],
+      intel: ['threats', 'enemy', 'districts', 'espionage', 'economy'], settings: ['saves', 'gameplay', 'audio', 'session'],
       help: ['goal', 'influence', 'ops', 'units', 'combat', 'research', 'covert', 'diplomacy', 'economy', 'turn', 'controls'] };
     for (const s of ['report', 'units', 'recruit', 'armory', 'research', 'battles', 'diplomacy', 'factions', 'intel', 'victory', 'help', 'settings', 'treasury']) {
       U.openScreen(s);

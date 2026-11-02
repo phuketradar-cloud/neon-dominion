@@ -31,6 +31,7 @@
         <header class="menu-head">
           <div class="brand"><span class="brand-mark"></span><span class="brand-t">NEON <b>DOMINION</b></span></div>
           <div class="menu-right">
+            <button class="btn audio-tg" data-audio-toggle data-label="1"></button>
             <button class="btn" id="btn-tutorial" data-icon="manual" title="Interactive tutorial in Thai (separate practice game)">Tutorial · บทเรียน</button>
             ${slots.map(([s, m]) => `<button class="btn" data-load="${s}" title="Load slot ${s}">Slot ${s}: T${m.turn} ${esc(ND.FDEF[m.faction].short)}</button>`).join('')}
             <button class="btn primary" id="btn-continue" ${auto ? '' : 'disabled'} title="${auto ? `Turn ${auto.turn} · ${esc(ND.FDEF[auto.faction].name)}` : 'No autosave yet'}">Continue${auto ? ` · T${auto.turn}` : ''}</button>
@@ -55,6 +56,7 @@
             <span class="fsc-name">${ND.emblemSvg(x.id)}${esc(x.name)}</span>
           </button>`).join('')}</nav>`;
       ND.applyIcons($('#start'));
+      ND.Audio.renderToggles();
       this.paintArt();
     },
     paintArt() {
@@ -136,6 +138,7 @@
 
     init() {
       ND.UI.init();
+      ND.Sound.init();
       document.addEventListener('click', (e) => {
         const card = e.target.closest('#start .fs-card');
         if (card) { this.picked = card.dataset.fid; this.renderStart(); return; }

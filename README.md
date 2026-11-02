@@ -86,3 +86,12 @@ personality and runs one covert operation per turn when worthwhile.
 with 7 timeouts at turn 250 and 3 cases where the simulated "player" faction was eliminated. Territorial and
 Economic wins dominate; Iron Legion and Shadow Network rarely win AI-only games, and Political and
 Technological victories did not occur in this sample. A human player shifts these numbers considerably.
+
+## Audio
+
+All music, ambience and sound effects are synthesised live with the Web Audio API (`js/view/audio.js`) — no audio files,
+nothing to license. `js/view/sound.js` connects it to the game: music per screen (menu, faction select, city, battle,
+victory, defeat) with crossfades and a faction flavour, interface sounds, a city soundscape that follows the selected
+district type, and sounds for real gameplay results (played only when an action succeeds). Sound starts after the
+player's first click or key press. Volumes and on/off switches live in **Settings › Audio** and the speaker button
+(top bar and opening screen); they are saved in this browser. Recorded tracks can replace themes — see `assets/audio/README.md`.

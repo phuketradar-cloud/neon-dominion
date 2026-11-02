@@ -130,11 +130,12 @@
         if (u && id !== u.loc) {
           const r = ND.Units.move(this.g, u, id);
           this.toast(r.ok ? `${u.name} moved to ${this.g.districts[id].name}. Now pick an order.` : r.reason, r.ok ? 'ok' : 'err');
-          if (r.ok) { this.sel = id; this.panel = { kind: 'unit', id: u.id }; this.utab = 'orders'; this.renderTop(); this.renderRight(); this.renderActions(); this.drawMap(); return; }
+          if (r.ok) { ND.sfx('move'); this.sel = id; this.panel = { kind: 'unit', id: u.id }; this.utab = 'orders'; this.renderTop(); this.renderRight(); this.renderActions(); this.drawMap(); return; }
         }
       }
       this.sel = id;
       this.panel = { kind: 'district' };
+      if (this.g.districts[id]) { ND.sfx('select'); ND.Audio.setAmbientProfile(this.g.districts[id].type); }
       this.renderRight();
       this.renderActions();
       this.drawMap();
@@ -471,7 +472,10 @@
       const t = arg == null ? { kind } : kind === 'attack' ? { kind, target: arg } : { kind, fac: Number(arg) };
       const r = ND.Units.setTask(this.g, u, t);
       if (!r.ok) this.toast(r.reason, 'err');
-      else this.toast(`${u.name}: ${this.orderView(u, ND.Units.tasks(this.g, u).find((x) => this.orderKey(x) === key) || t).name}.`, 'ok');
+      else {
+        ND.sfx('order');
+        this.toast(`${u.name}: ${this.orderView(u, ND.Units.tasks(this.g, u).find((x) => this.orderKey(x) === key) || t).name}.`, 'ok');
+      }
       this.refreshUnitViews(id);
     },
     refreshUnitViews() {
@@ -484,7 +488,7 @@
       const u = this.g.units[id];
       if (!u) return;
       const r = ND.Units.equip(this.g, u, slot, key || null);
-      if (!r.ok) this.toast(r.reason, 'err');
+      if (!r.ok) this.toast(r.reason, 'err'); else ND.sfx('equip');
       this.refreshUnitViews(id);
     },
     // Pending pact offers to the player, with answer buttons.
@@ -539,6 +543,7 @@
       const g = this.g, d = g.districts[this.sel];
       if (!d) return;
       const r = ND.Actions.exec(g, g.player, key, d);
+      if (r.ok) ND.sfx(key);
       this.toast(r.ok ? `You ${r.msg}.` : r.reason, r.ok ? 'ok' : 'err');
       this.renderAll();
     },
@@ -554,9 +559,11 @@
       busy.innerHTML = `<div class="busy-card"><span class="busy-dots">${g.order.filter((f) => g.factions[f].alive && f !== g.player)
         .map((f) => `<i style="--fc:${ND.FDEF[f].color}"></i>`).join('')}</span>Rival factions are making their moves…</div>`;
       busy.classList.remove('hidden');
+      ND.Sound.beforeTurn(g);
       setTimeout(() => {
         try {
           ND.Turn.end(g);
+          ND.Sound.afterTurn(g);
           // The tutorial game never overwrites the real autosave.
           if (g.settings.autosave && !g.tutorial) ND.Save.save(g, 'auto');
           this.panel = { kind: 'district' };
@@ -650,6 +657,7 @@
           if (!g.units[id]) return;
           if (S.cur === 'units') { S.set('sel', id); return; }
           if (S.isOpen()) { S.open('units', { sel: id, tab: 'all', page: 0 }); return; }
+          ND.sfx('unitSelect');
           this.panel = { kind: 'unit', id }; this.utab = 'orders'; this.renderRight();
           return;
         }
@@ -657,24 +665,28 @@
         case 'acttab': this.actTab = arg; this.renderActions(); return;
         case 'sell': case 'buy-res': {
           const r = c === 'sell' ? ND.Market.sell(g, g.player, arg) : ND.Market.buy(g, g.player, arg);
+          if (r.ok) ND.sfx('trade');
           this.toast(r.ok ? r.msg : r.reason, r.ok ? 'ok' : 'err');
           this.renderTop(); this.renderLeft(); this.renderActions(); S.refresh();
           return;
         }
         case 'propose': {
           const r = ND.Diplo.propose(g, g.player, arg);
+          if (r.ok) ND.sfx(r.accepted ? 'pact' : 'decline');
           this.toast(!r.ok ? r.reason : r.accepted ? `${ND.FDEF[arg].name} accepted the pact.` : `${ND.FDEF[arg].name} refused.`, r.ok && r.accepted ? 'ok' : 'err');
           this.renderAll(); S.refresh();
           return;
         }
         case 'breakpact': {
           const r = ND.Diplo.breakPact(g, g.player, arg);
+          if (r.ok) ND.sfx('hostile');
           this.toast(r.ok ? `You broke the pact with ${ND.FDEF[arg].name}.` : r.reason, r.ok ? 'ok' : 'err');
           this.renderAll(); S.refresh();
           return;
         }
         case 'answer': {
           const r = ND.Diplo.answer(g, arg, arg2 === 'yes');
+          if (r.ok) ND.sfx(arg2 === 'yes' ? 'pact' : 'decline');
           this.toast(!r.ok ? r.reason : arg2 === 'yes' ? `Pact signed with ${ND.FDEF[arg].name}.` : `You declined ${ND.FDEF[arg].name}'s offer.`, r.ok ? 'ok' : 'err');
           this.renderAll(); S.refresh();
           return;
@@ -694,6 +706,7 @@
         case 'covert': {
           const d = g.districts[this.sel];
           const r = ND.Espionage.exec(g, g.player, arg, d);
+          if (r.ok) ND.sfx(r.success ? 'hack' : 'alarm');
           if (!r.ok) this.toast(r.reason, 'err');
           else this.toast(r.success ? `Success (${r.pct}%): you ${r.msg}.` : `Failed (${r.pct}%): ${r.msg}. The target is on alert.`, r.success ? 'ok' : 'err');
           this.renderAll();
@@ -701,6 +714,7 @@
         }
         case 'research': {
           const r = ND.Tech.start(g, g.player, arg);
+          if (r.ok) ND.sfx('research');
           this.toast(r.ok ? `Research started: ${ND.TECHS[arg].name}.` : r.reason, r.ok ? 'ok' : 'err');
           this.renderTop(); S.refresh();
           return;
@@ -716,6 +730,7 @@
           if (!u) return;
           if (u.injured || u.moved) { this.toast(u.injured ? 'Injured units cannot move.' : 'Already moved this turn.', 'err'); return; }
           this.closeModal(); S.close();
+          ND.sfx('moveArm');
           this.moving = u.id;
           this.sel = u.loc;
           this.renderRight(); this.renderActions(); this.drawMap();
@@ -723,12 +738,14 @@
         }
         case 'recruit': {
           const r = ND.Units.recruit(g, g.player, Number(arg));
+          if (r.ok) ND.sfx('recruit');
           this.toast(r.ok ? `${r.unit.name} joined at your HQ.` : r.reason, r.ok ? 'ok' : 'err');
           this.renderAll(); S.set('sel', 0);
           return;
         }
         case 'buy': {
           const r = ND.Units.buy(g, g.player, arg);
+          if (r.ok) ND.sfx('buy');
           this.toast(r.ok ? `${ND.ITEMS[arg].label} added to the armory.` : r.reason, r.ok ? 'ok' : 'err');
           this.renderAll(); S.refresh();
           return;
@@ -738,6 +755,7 @@
           if (!u || !it) return;
           const slot = ND.UNIT_TYPES[u.type].slots.findIndex((s, i) => s === it.slot && !u.equip[i]);
           const r = slot < 0 ? { ok: false, reason: 'No free slot.' } : ND.Units.equip(g, u, slot, arg2);
+          if (r.ok) ND.sfx('equip');
           this.toast(r.ok ? `${u.name} equipped ${it.label}.` : r.reason, r.ok ? 'ok' : 'err');
           this.refreshUnitViews(u.id);
           return;
@@ -751,7 +769,7 @@
         }
         case 'dismiss-yes': {
           const u = g.units[arg];
-          if (u) { ND.Units.dismiss(g, u); this.toast(`${u.name} dismissed.`, 'ok'); }
+          if (u) { ND.Units.dismiss(g, u); ND.sfx('dismiss'); this.toast(`${u.name} dismissed.`, 'ok'); }
           this.closeModal();
           if (this.panel.kind === 'unit') this.panel = { kind: 'district' };
           this.renderAll(); S.refresh();

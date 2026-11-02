@@ -576,13 +576,27 @@
           <label class="check big"><input type="checkbox" id="opt-autosave" ${g.settings.autosave ? 'checked' : ''} data-cmd="autosave"> Autosave at the end of every turn</label>
           <label class="check big"><input type="checkbox" id="opt-brief" ${g.settings.autoBriefing !== false ? 'checked' : ''} data-cmd="autobrief"> Open the briefing automatically at the start of each turn</label>
           <p class="small dim">Difficulty: ${ND.DIFFICULTY[g.difficulty].label}. Victory conditions are fixed once a game starts — see Objectives.</p></div>`;
+      } else if (st.tab === 'audio') {
+        const P = ND.Audio.prefs;
+        const slider = (k, label, onKey, hint) => `<div class="aud-row">
+            ${onKey ? `<label class="check"><input type="checkbox" data-audio-flag="${onKey}" ${P[onKey] ? 'checked' : ''}> ${label}</label>` : `<b>${label}</b>`}
+            <input type="range" min="0" max="100" step="1" value="${Math.round(P[k] * 100)}" data-audio-vol="${k}" aria-label="${label} volume">
+            <output>${Math.round(P[k] * 100)}%</output><span class="small dim">${hint}</span></div>`;
+        body = `<div class="card set-card aud-card">
+          ${ND.Audio.ctx ? '' : `<div class="d-status st-warn">${ND.icon('mute')}<span>Sound starts after your first click or key press (browser rule).</span></div>`}
+          <label class="check big"><input type="checkbox" data-audio-flag="muted" ${P.muted ? 'checked' : ''}> Mute all sound</label>
+          ${slider('master', 'Master', null, 'Overall level')}
+          ${slider('music', 'Music', 'musicOn', 'Synthesised score — changes with the screen and your faction')}
+          ${slider('sfx', 'Sound effects', 'sfxOn', 'Interface and gameplay feedback')}
+          ${slider('ambient', 'Ambience', 'ambientOn', 'City soundscape — follows the district you select')}
+          <p class="small dim">Release a slider to hear a preview. Preferences are saved in this browser and apply to every game.</p></div>`;
       } else {
         body = `<div class="card set-card"><p>Leave this game and return to the faction selection screen. Your autosave stays available under Continue.</p>
           <button class="btn danger big" data-cmd="quit">Quit to main menu</button>
           <p>Learn the basics with the interactive tutorial (starts a separate practice game; it never overwrites your autosave).</p>
           <button class="btn primary" data-cmd="tutorial">${ND.icon('manual')}Start tutorial</button></div>`;
       }
-      return `${tabs('settings', [['saves', 'Save & load'], ['gameplay', 'Gameplay'], ['session', 'Session']], st.tab)}<div class="scr-main">${body}</div>`;
+      return `${tabs('settings', [['saves', 'Save & load'], ['gameplay', 'Gameplay'], ['audio', 'Audio'], ['session', 'Session']], st.tab)}<div class="scr-main">${body}</div>`;
     },
   };
 
