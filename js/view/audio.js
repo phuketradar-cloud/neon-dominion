@@ -60,7 +60,15 @@
     ambProfile: 'street',
     last: {},
     voices: 0,
-    TRACK_FILES: { menu: null, select: null, city: null, battle: null, victory: null, defeat: null }, // optional recorded music
+    trackPos: {}, // playback position of recorded tracks, so returning to a screen continues the music
+    // Recorded music used instead of the synthesised theme (null = synthesised). Title screens share one track.
+    TRACK_FILES: {
+      menu: 'assets/audio/music/opening.mp3', select: 'assets/audio/music/opening.mp3', city: 'assets/audio/music/gameplay.mp3',
+      battle: null, victory: null, defeat: null,
+    },
+    // Mastered tracks are far louder than the synthesised score; trim them to sit at the same level in the mix
+    // (measured: opening RMS 0.159, gameplay RMS 0.131; the synthesised themes run at about 0.055 before the buses).
+    TRACK_GAIN: { 'assets/audio/music/opening.mp3': 0.35, 'assets/audio/music/gameplay.mp3': 0.42 },
 
     // ---------- setup ----------
     initialize() {
@@ -149,9 +157,16 @@
       this.crossfadeMusic(id, fid, id === 'battle' ? 1.2 : id === 'victory' || id === 'defeat' ? 0.6 : 2.2);
     },
     crossfadeMusic(id, fid, dur) {
-      const old = this.song;
+      const old = this.song, url = this.TRACK_FILES[id];
+      if (url && old instanceof FileSong && old.url === url) return; // same recording (menu → faction select): keep playing
       if (old) { old.fadeOut(dur); this.fading.push(old); }
-      this.song = this.TRACK_FILES[id] ? new FileSong(this, this.TRACK_FILES[id]) : new Song(this, THEMES[id](FLAVOR[fid] || NEUTRAL), id);
+      const back = url && this.fading.find((s) => s instanceof FileSong && s.url === url && s !== old);
+      if (back) { // still fading out (e.g. a quick look at Battles): bring it back instead of restarting
+        this.fading = this.fading.filter((s) => s !== back);
+        back.endAt = Infinity; this.song = back; back.fadeIn(dur);
+        return;
+      }
+      this.song = url ? new FileSong(this, url) : new Song(this, THEMES[id](FLAVOR[fid] || NEUTRAL), id);
       this.song.fadeIn(dur);
       if (id === 'battle') this.sfx('impact', { force: true });
       if (id === 'victory') this.sfx('victoryHit', { force: true });
@@ -363,15 +378,21 @@
   // A recorded track (optional replacement for a synthesised theme), routed through the same music bus.
   class FileSong {
     constructor(au, url) {
-      this.el = new Audio(url); this.el.loop = true; this.el.crossOrigin = 'anonymous';
+      this.url = url;
+      this.el = new Audio(url); this.el.loop = true; this.el.preload = 'auto';
       this.src = au.ctx.createMediaElementSource(this.el);
-      this.out = au.ctx.createGain(); this.out.gain.value = 0.0001; this.src.connect(this.out); this.out.connect(au.bus.music);
-      this.endAt = Infinity; this.el.play().catch(() => {});
+      this.trim = au.ctx.createGain(); this.trim.gain.value = au.TRACK_GAIN[url] != null ? au.TRACK_GAIN[url] : 0.3;
+      this.out = au.ctx.createGain(); this.out.gain.value = 0.0001;
+      this.src.connect(this.trim); this.trim.connect(this.out); this.out.connect(au.bus.music);
+      this.endAt = Infinity;
+      const pos = au.trackPos[url]; // resume where this track was left
+      if (pos) this.el.addEventListener('loadedmetadata', () => { this.el.currentTime = pos % (this.el.duration || Infinity); }, { once: true });
+      this.el.play().catch(() => {});
     }
     fadeIn(d) { Song.prototype.fadeIn.call(this, d); }
     fadeOut(d) { Song.prototype.fadeOut.call(this, d); }
     done() { return A.ctx.currentTime > this.endAt; }
-    dispose() { this.el.pause(); this.el.src = ''; try { this.out.disconnect(); } catch (e) { /* gone */ } }
+    dispose() { A.trackPos[this.url] = this.el.currentTime; this.el.pause(); this.el.removeAttribute('src'); this.el.load(); try { this.out.disconnect(); this.src.disconnect(); } catch (e) { /* gone */ } }
     tick() {}
   }
 

@@ -1,15 +1,23 @@
 # Audio
 
-The game ships no audio files. All music, ambience and sound effects are synthesised live by
-`js/view/audio.js` (Web Audio API), so every sound is original and there is nothing to license.
+## Recorded music (in use)
 
-## Replacing a music theme with a recorded track (optional)
+| File | Plays on |
+|---|---|
+| `music/opening.mp3` | Title menu, faction selection and New Game Setup (one continuous track) |
+| `music/gameplay.mp3` | The city during play, including every full screen except Battles and the result screen |
 
-Put a licensed or original loop in `assets/audio/music/` and point the theme at it in `js/view/audio.js`:
+Battles, victory and defeat keep the synthesised score. Tracks loop, crossfade, follow the Music volume and
+resume where they were left. Their levels are trimmed in `TRACK_GAIN` (`js/view/audio.js`) to sit with the
+rest of the mix; adjust those numbers if a track sounds too loud or too quiet.
 
-```js
-TRACK_FILES: { menu: 'assets/audio/music/main-menu.ogg', select: null, city: null, battle: null, victory: null, defeat: null },
-```
+## Synthesised audio
 
-Themes left as `null` keep the synthesised score. Recorded tracks go through the same music volume,
-mute and crossfade as the synthesised ones. `serve.js` serves `.ogg`, `.mp3` and `.wav`.
+Everything else — the remaining themes, interface and gameplay effects, and city ambience — is synthesised
+live by `js/view/audio.js` (Web Audio API).
+
+## Replacing another theme
+
+Put the file in `assets/audio/music/` and set it in `TRACK_FILES` (`menu`, `select`, `city`, `battle`,
+`victory`, `defeat`); `null` keeps the synthesised theme. `serve.js` serves `.ogg`, `.mp3` and `.wav` with
+byte ranges so tracks can resume mid-way.
