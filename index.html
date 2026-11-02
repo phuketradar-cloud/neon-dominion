@@ -8,60 +8,44 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/v3.css">
 </head>
 <body>
-  <!-- Main menu -->
-  <div id="start" class="hidden">
-    <div class="start-inner">
-      <h1 class="logo"><span class="logo-a">NEON</span><span class="logo-b">DOMINION</span></h1>
-      <p class="tagline">The megacity is rotting. Six crime empires want what's left. Choose yours.</p>
-      <div class="tut-banner"><span><b>เล่นครั้งแรก?</b> เริ่มบทเรียนแบบลงมือทำ ทีละขั้น (ภาษาไทย ประมาณ 10 นาที)</span><button id="btn-tutorial" class="btn primary" data-icon="manual">เริ่มบทเรียน</button></div>
-      <div id="pick"></div>
-      <div id="setup" class="setup"></div>
-      <div class="start-bar">
-        <label>City seed <input id="seed" type="number"></label>
-        <button id="btn-new" class="btn primary big" data-icon="end">Seize the city</button>
-        <span id="setup-err" class="neg small"></span>
-        <span class="sep"></span>
-        <button id="btn-continue" class="btn">Continue</button>
-        <span id="continue-info" class="dim small"></span>
-        <span id="load-slots"></span>
-      </div>
-    </div>
-  </div>
+  <!-- Faction selection (rendered by main.js) -->
+  <div id="start" class="app-screen hidden"></div>
+  <!-- New game setup (rendered by main.js) -->
+  <div id="setupscr" class="app-screen hidden"></div>
 
-  <!-- Game -->
+  <!-- Main city screen -->
   <div id="game" class="hidden">
     <header id="topbar">
-      <div class="tb-main">
-        <div class="brand"><span class="brand-mark"></span><span class="brand-t">NEON <b>DOMINION</b></span></div>
-        <div id="resources"></div>
-        <div class="tb-stats">
-          <div id="turn" class="pill"></div>
-          <div id="ops" class="pill"></div>
-          <div id="unitpill" class="pill"></div>
-          <button id="rdpill" class="pill" data-screen="research"></button>
-        </div>
-        <button id="btn-end" class="btn end" data-cmd="end" data-icon="end">END TURN</button>
+      <div class="brand"><span class="brand-mark"></span><span class="brand-t">NEON <b>DOMINION</b></span></div>
+      <div id="resources" data-cmd="treasury" title="Treasury"></div>
+      <div class="tb-stats">
+        <div id="turn" class="pill"></div>
+        <div id="ops" class="pill"></div>
+        <button id="unitpill" class="pill" data-screen="units"></button>
+        <button id="rdpill" class="pill" data-screen="research"></button>
       </div>
       <nav class="tb-nav">
-        <button class="btn sm" data-screen="report" data-icon="briefing">Briefing</button>
-        <button class="btn sm" data-screen="units" data-icon="units">Units</button>
-        <button class="btn sm" data-screen="recruit" data-icon="recruit">Recruit</button>
-        <button class="btn sm" data-screen="armory" data-icon="armory">Armory</button>
-        <button class="btn sm" data-screen="battles" data-icon="battles">Battles</button>
-        <button class="btn sm" data-screen="diplomacy" data-icon="diplomacy">Diplomacy</button>
-        <button class="btn sm" data-screen="factions" data-icon="factions">Factions</button>
-        <button class="btn sm" data-screen="intel" data-icon="intelnav">Intel</button>
-        <button class="btn sm" data-screen="victory" data-icon="victory">Victory</button>
-        <button class="btn sm" data-screen="help" data-icon="manual">Manual</button>
-        <button class="btn sm" data-screen="settings" data-icon="settings">Settings</button>
-        <span class="tb-hint">Keys: arrows select · 1–5 operations · E end turn · Esc close</span>
+        <button class="nav-b" data-screen="report" data-icon="briefing" title="Briefing"><span>Briefing</span></button>
+        <button class="nav-b" data-screen="units" data-icon="units" title="Units"><span>Units</span></button>
+        <button class="nav-b" data-screen="recruit" data-icon="recruit" title="Recruit"><span>Recruit</span></button>
+        <button class="nav-b" data-screen="armory" data-icon="armory" title="Armory"><span>Armory</span></button>
+        <button class="nav-b" data-screen="battles" data-icon="battles" title="Battles"><span>Battles</span></button>
+        <button class="nav-b" data-screen="diplomacy" data-icon="diplomacy" title="Diplomacy"><span>Diplomacy</span></button>
+        <button class="nav-b" data-screen="factions" data-icon="factions" title="Factions"><span>Factions</span></button>
+        <button class="nav-b" data-screen="intel" data-icon="intelnav" title="Intel"><span>Intel</span></button>
+        <button class="nav-b" data-screen="victory" data-icon="victory" title="Objectives"><span>Objectives</span></button>
+        <button class="nav-b" data-screen="help" data-icon="manual" title="Manual"><span>Manual</span></button>
+        <button class="nav-b" data-screen="settings" data-icon="settings" title="Settings"><span>Settings</span></button>
       </nav>
+      <button id="btn-end" class="btn end" data-cmd="end" data-icon="end">END TURN</button>
     </header>
     <aside id="left"></aside>
     <main id="center">
       <canvas id="map"></canvas>
+      <div id="map-tools"></div>
       <div id="tooltip" class="hidden"></div>
       <div id="move-banner" class="hidden"></div>
     </main>
@@ -69,6 +53,17 @@
     <footer id="actions"></footer>
   </div>
 
+  <!-- Full-screen secondary screens (rendered by screens.js) -->
+  <div id="screen" class="hidden">
+    <header class="scr-head">
+      <button class="btn scr-back" data-cmd="close" title="Back to the city (Esc)">‹ City</button>
+      <h1 id="screen-title"></h1>
+      <nav id="screen-nav"></nav>
+    </header>
+    <div id="screen-body"></div>
+  </div>
+
+  <!-- Small dialogs only -->
   <div id="modal" class="hidden">
     <div class="modal-box">
       <div class="modal-head"><h2 id="modal-title"></h2><button class="btn sm" data-cmd="close">✕</button></div>
@@ -98,8 +93,10 @@
   <!-- Rendering / interface -->
   <script src="js/view/icons.js"></script>
   <script src="js/view/art.js"></script>
+  <script src="js/view/portraits.js"></script>
   <script src="js/view/mapview.js"></script>
   <script src="js/view/ui.js"></script>
+  <script src="js/view/screens.js"></script>
   <script src="js/view/tutorial.js"></script>
   <script src="js/main.js"></script>
 </body>

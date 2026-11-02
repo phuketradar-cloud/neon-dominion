@@ -37,11 +37,30 @@ gives identical hashes before and after.
   styled tooltips for every `[title]`, turn activity overlay and per-faction territory changes.
 - Testing: `tests/ui-smoke.js` drives every control through the DOM; run it at each target resolution.
 
+## UX V3 — full-screen, zero page scrolling (tag `pre-v3` = before)
+Still presentation-only: `git diff pre-v3 -- js/core` is empty and the rules fingerprint is unchanged.
+
+| Screen | Where | Purpose |
+|---|---|---|
+| Faction selection | `#start` (`js/main.js`) | Large portrait, pitch, traits, roster of 6; Continue / load slots / Tutorial |
+| New Game Setup | `#setupscr` | Difficulty, victory condition, Advanced (seed, autosave, auto briefing) |
+| City | `#game` | Top bar, left status, map (~65–70%), contextual right panel (district / unit / faction), command cards |
+| Full screens | `#screen` via `ND.Screens.open(name)` | report, units, recruit, armory, research, battles, diplomacy, factions, intel, victory, treasury, settings, help, gameover |
+
+- `css/v3.css` — V3 palette and layouts (loaded after `style.css`); minimum text size 12px.
+- `js/view/screens.js` — screen framework: header with `‹ City` back, title and nav; per-screen state
+  `{tab, page, sel, sub}` (reset on every new game); `ND.Screens.fill()` measures the free space and paginates
+  card grids so nothing scrolls.
+- `js/view/portraits.js` — vector character portraits and faction emblems.
+- `g.settings.autoBriefing` — presentation-only setting (show the turn report automatically).
+- Not offered (no rules support): number of AI opponents, turn limit.
+- Testing: `tests/viewport-sweep.js` checks 54 states per resolution with `tests/viewport-check.js`.
+
 ## Event wiring that must keep working
 Delegated click handler on `document` in `UI.init`: `[data-act]` (district ops), `[data-mode]` (map overlay),
-`[data-screen]` (modals), `[data-cmd]` (everything else, with `data-arg`/`data-arg2`). `change` on `.equip-sel`.
-Keyboard: arrows, 1–5, E, Esc. Map canvas: click/hover via `MapView` handlers. Tutorial targets these selectors:
-`#center`, `#resources`, `#right`, `[data-act="campaign"]`, `#topbar [data-screen="recruit"]`,
-`#modal [data-cmd="recruit"]`, `#right [data-cmd="move"]`, `#right [data-order="canvass"]`, `#right .u-cur`,
-`#rdpill`, `#modal [data-cmd="research"]`, `#btn-end`, `#modal .modal-box`, `#modal .modal-head [data-cmd="close"]`,
-`#left .ledger`, `#topbar nav`.
+`[data-screen]` (full screens), `[data-cmd]` (everything else, with `data-arg`/`data-arg2`). `change` on `.equip-sel`.
+Keyboard: arrows, 1–5, E, Esc (closes dialog → screen → panel). Map canvas: click/hover via `MapView` handlers.
+Tutorial targets: `#center`, `#resources`, `#right`, `[data-act="campaign"]`, `#topbar [data-screen="recruit"]`,
+`#screen [data-cmd="recruit"]`, `#right [data-cmd="move"]`, `#right [data-order="canvass"]`, `#rdpill`,
+`#screen [data-cmd="research"]`, `#btn-end`, `#screen-body`, `#screen .scr-back`, `#left .treasury-mini`,
+`#topbar .tb-nav`.

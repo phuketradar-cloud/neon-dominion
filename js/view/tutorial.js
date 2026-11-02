@@ -8,8 +8,10 @@
   const me = (g) => g.factions[g.player];
   const tgt = (g) => g.districts[g.tutorial.target];
   const inf = (g) => ND.Inf.get(tgt(g), g.player);
-  const modalOpen = () => !$('#modal').classList.contains('hidden');
-  const modalTitle = () => $('#modal-title').textContent;
+  // A full screen (ND.Screens) or a small dialog is covering the city.
+  const modalOpen = () => (ND.Screens && ND.Screens.isOpen()) || !$('#modal').classList.contains('hidden');
+  const screenIs = (n) => ND.Screens && ND.Screens.cur === n;
+  const CLOSE = '#screen .scr-back';
   const myUnits = (g) => ND.Units.list(g, g.player);
   const sec = (d) => ND.World.sector(d);
   const b = (s) => `<b>${s}</b>`;
@@ -83,25 +85,25 @@
     },
     {
       title: 'จ้างหน่วย (Recruit)',
-      target: () => (modalOpen() && modalTitle() === 'Recruitment' ? '#modal [data-cmd="recruit"]:not([disabled])' : '#topbar [data-screen="recruit"]'),
+      target: () => (screenIs('recruit') ? '#screen [data-cmd="recruit"]:not([disabled])' : '#topbar [data-screen="recruit"]'),
       body: () => `${b('หน่วย')}คือลูกน้องที่ทำงานให้ทุกเทิร์นเอง${b('โดยไม่ใช้ OPS')}<br><br>
-        ① กดปุ่ม ${b('Recruit')} ด้านบน<br>
-        ② กด ${b('Recruit')} ใต้ ${b('Human Mercenary')} คนไหนก็ได้<br><br>
+        ① กดปุ่ม ${b('Recruit')} (ไอคอนคน+) บนแถบด้านบน<br>
+        ② เลือกการ์ด ${b('Human Mercenary')} คนไหนก็ได้ แล้วกดปุ่ม ${b('Recruit')} ทางขวา<br><br>
         หน่วยใหม่จะไปอยู่ที่ HQ และมี${b('ค่าจ้างทุกเทิร์น')} — อย่าจ้างเยอะจนเงินติดลบ`,
       done: (g) => myUnits(g).length > 0,
     },
     {
       title: 'ย้ายหน่วยไปเขตเป้าหมาย',
       target: (g) => {
-        if (modalOpen()) return '#modal .modal-head [data-cmd="close"]';
+        if (modalOpen()) return CLOSE;
         if (ui().moving != null) return '#center';
         if (ui().sel !== g.tutorial.hq) return '#center';
         return '#right [data-cmd="move"]';
       },
       hint: (g) => (ui().moving != null ? g.tutorial.target : ui().sel !== g.tutorial.hq ? g.tutorial.hq : null),
-      body: (g) => `① ปิดหน้าต่าง (ปุ่ม ✕) ถ้ายังเปิดอยู่<br>
+      body: (g) => `① กลับมาที่เมือง (ปุ่ม ${b('‹ City')} มุมซ้ายบน) ถ้ายังอยู่ในหน้าจออื่น<br>
         ② คลิก ${b('HQ')} ของคุณบนแผนที่ (วงเหลือง)<br>
-        ③ ในแผงขวา หัวข้อ ${b('Units here')} กดปุ่มสีเขียว ${b('➜ Move')} ที่หน่วย<br>
+        ③ ในแผงขวาจะเห็นหน่วยของคุณ กดปุ่มสีเขียว ${b('Move')}<br>
         ④ ช่องที่ไปได้จะเป็นสีเขียว — คลิก ${b(tgt(g).name)} (วงเหลือง)<br><br>
         หน่วยย้ายได้ 1 ครั้งต่อเทิร์น`,
       done: (g) => myUnits(g).some((u) => u.loc === g.tutorial.target),
@@ -109,43 +111,48 @@
     {
       title: 'สั่งให้หาเสียง (Canvass)',
       target: () => ($('#right [data-order="canvass"]') ? '#right [data-order="canvass"]' : '#right .u-cur'),
-      enter: (g) => { if (!modalOpen()) ui().select(g.tutorial.target); },
+      enter: (g) => {
+        if (modalOpen()) return;
+        const u = myUnits(g).find((x) => x.loc === g.tutorial.target);
+        if (u && !(ui().panel.kind === 'unit' && ui().panel.id === u.id)) ui().cmd('unit', u.id);
+      },
       body: () => `ทุกหน่วยมี${b('คำสั่งประจำ')} ที่จะทำซ้ำทุกเทิร์นจนกว่าคุณจะเปลี่ยน<br><br>
-        ในแผงขวา ใต้ชื่อหน่วยจะมี${b('ปุ่มคำสั่ง')} (ถ้ายังไม่เห็น ให้กดแถบ ${b('Change ▼')} ของหน่วย)<br>
-        กดปุ่ม ${b('📢 Canvass')} (หาเสียง) — หน่วยจะเพิ่มอิทธิพลในเขตที่ยืนอยู่ทุกเทิร์น<br><br>
+        แผงขวาตอนนี้แสดง${b('ข้อมูลตัวละคร')} ในแท็บ ${b('Orders')} มีปุ่มคำสั่ง<br>
+        กดปุ่ม ${b('Canvass')} (หาเสียง) — หน่วยจะเพิ่มอิทธิพลในเขตที่ยืนอยู่ทุกเทิร์น<br><br>
         ใต้แต่ละปุ่มบอกผลที่จะได้ เช่น ${b('+7% influence')} ปุ่มสีจางคือใช้ไม่ได้ในเขตนี้ (ชี้เมาส์ค้างเพื่อดูเหตุผล)<br><br>
         คำสั่งอื่นที่ควรรู้: ${b('🛡 Guard')} = เฝ้าเขตของตัวเอง และสู้กับศัตรูที่เข้ามา`,
       done: (g) => myUnits(g).some((u) => u.task.kind === 'canvass'),
     },
     {
       title: 'เริ่มงานวิจัย',
-      target: () => (modalOpen() && modalTitle() === 'Technology Tree' ? '#modal [data-cmd="research"]:not([disabled])' : '#rdpill'),
+      target: () => (screenIs('research') ? '#screen [data-cmd="research"]:not([disabled])' : '#rdpill'),
       body: () => `งานวิจัยให้โบนัสถาวร เช่น หน่วยตีแรงขึ้น<br><br>
-        ① กดกล่อง ${b('R&D')} บนแถบด้านบน<br>
-        ② กดปุ่ม ${b('Research')} ที่เทคไหนก็ได้ที่กดได้ (ตอนนี้แนะนำ ${b('Advanced Weapons')})<br><br>
+        ① กดกล่องงานวิจัย (ไอคอนขวดทดลอง) บนแถบด้านบน<br>
+        ② เลือกเทคในแผนผัง แล้วกด ${b('Start research')} ทางขวา (ตอนนี้แนะนำ ${b('Advanced Weapons')})<br><br>
         วิจัยได้ทีละอย่าง จ่ายเงินก่อนแล้วรอหลายเทิร์น`,
       done: (g) => !!me(g).tech.current || me(g).tech.done.length > 0,
     },
     {
       title: 'จบเทิร์น',
-      target: () => (modalOpen() ? '#modal .modal-head [data-cmd="close"]' : '#btn-end'),
-      body: () => `สั่งงานครบแล้ว! ปิดหน้าต่าง (ถ้าเปิดอยู่) แล้วกด ${b('END TURN')} (หรือกด ${b('E')})<br><br>
+      target: () => (modalOpen() ? CLOSE : '#btn-end'),
+      body: () => `สั่งงานครบแล้ว! กลับมาที่เมือง (ปุ่ม ${b('‹ City')}) แล้วกด ${b('END TURN')} (หรือกด ${b('E')})<br><br>
         แก๊งอื่นจะเล่นตาของเขา จากนั้นคำสั่งทั้งหมดจะเกิดผล: หน่วยหาเสียง เกิดการรบ และยึดเขต`,
       done: (g) => g.turn >= 2,
     },
     {
       title: 'รายงานต้นเทิร์น',
-      target: '#modal .modal-box',
+      target: '#screen-body',
       body: () => `ทุกต้นเทิร์นจะมี${b('รายงาน')}สรุป:<br>
         • ${b('รายรับ-รายจ่าย')} ของเทิร์นนี้<br>
         • ${b('อันดับ')}ของทุกแก๊ง<br>
         • ${b('เหตุการณ์')}ที่คุณมองเห็น เช่น ใครยึดเขตไหน หรือเกิดการรบที่ไหน<br><br>
+        แยกเป็นแท็บ Summary / Events / Battles / Offers<br>
         อ่านแล้วกด ${b('Issue commands')} เพื่อเล่นต่อ (เปิดดูใหม่ได้ที่ปุ่ม Briefing)`,
       done: () => !modalOpen(),
     },
     {
       title: 'ยึดเขตให้สำเร็จ',
-      target: (g) => (modalOpen() ? '#modal .modal-head [data-cmd="close"]' : me(g).ops > 0 && ui().sel === g.tutorial.target ? '[data-act="campaign"]' : ui().sel !== g.tutorial.target ? '#center' : '#btn-end'),
+      target: (g) => (modalOpen() ? CLOSE : me(g).ops > 0 && ui().sel === g.tutorial.target ? '[data-act="campaign"]' : ui().sel !== g.tutorial.target ? '#center' : '#btn-end'),
       hint: (g) => (ui().sel !== g.tutorial.target ? g.tutorial.target : null),
       body: (g) => `อิทธิพลของคุณใน ${b(tgt(g).name)} ตอนนี้: ${b(inf(g) + '%')} (ต้อง 50% และนำ 15 แต้ม)<br><br>
         ทำซ้ำแบบเดิมจนกว่าจะยึดได้:<br>
@@ -156,10 +163,10 @@
     {
       title: 'ยึดได้แล้ว! 🎉',
       info: true,
-      target: '#left .ledger',
+      target: '#left .treasury-mini',
       body: (g) => `${b(tgt(g).name)} เป็นของคุณแล้ว (สีส้ม)<br><br>
         เขตที่ครองจะ${b('ให้รายได้ทุกเทิร์น')} แต่มี${b('ค่าดูแล')} 3 CR + 1 EN ต่อเขต<br><br>
-        ดูกรอบ ${b('Treasury forecast')} ทางซ้าย: แถว ${b('Net')} คือกำไรสุทธิต่อเทิร์น<br>
+        ดูกรอบ ${b('Next turn')} ทางซ้าย: ตัวเลขคือกำไรสุทธิต่อเทิร์นของแต่ละทรัพยากร (คลิกเพื่อเปิด Treasury)<br>
         ถ้าเป็นสีแดงแปลว่าขาดทุน — ถ้าทรัพยากรหมด อิทธิพลจะลดลงทุกเขต และหน่วยจะหนี`,
     },
     {
@@ -180,7 +187,7 @@
     {
       title: 'เมนูอื่น ๆ',
       info: true,
-      target: '#topbar nav',
+      target: '#topbar .tb-nav',
       body: () => `• ${b('Units')} — ดูหน่วยทั้งหมด ใส่อาวุธ ฝึก<br>
         • ${b('Armory')} — ซื้ออาวุธและเกราะ<br>
         • ${b('Battles')} — รายงานการรบละเอียด<br>

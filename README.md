@@ -14,9 +14,20 @@ Then open http://localhost:8080. (Any static file server works.)
 | Layer | Files | Notes |
 |---|---|---|
 | Core rules (no DOM) | `js/core/rng.js`, `data.js`, `world.js`, `economy.js`, `actions.js`, `units.js`, `combat.js`, `tech.js`, `espionage.js`, `diplomacy.js`, `victory.js`, `market.js`, `ai.js`, `turn.js`, `save.js` | All state is one plain JSON object (`g`), including the seeded RNG, so saves are exact. |
-| Presentation | `js/view/art.js`, `mapview.js`, `ui.js`, `js/main.js` | Reads state and calls core functions — never mutates rules directly. |
+| Presentation | `js/view/icons.js`, `art.js`, `portraits.js`, `mapview.js`, `ui.js`, `screens.js`, `tutorial.js`, `js/main.js`; `css/style.css` + `css/v3.css` | Reads state and calls core functions — never mutates rules directly. |
 
 Player and AI factions use the same core functions (`ND.Actions`, `ND.Units`), so costs and rules are identical.
+
+## UX V3 — full-screen, zero page scrolling
+
+Every screen fits the viewport (tested at 1366×768, 1536×864, 1600×900, 1920×1080); long content uses tabs, pagination and detail panels instead of scrolling.
+
+- **Faction selection** → **New Game Setup** (difficulty, victory condition, advanced: seed / autosave / auto briefing) → city.
+- **City**: compact top bar (resources, turn, ops, units, research, screen nav, End Turn), left status column, map, contextual right panel (district / unit / faction), command cards below the map.
+- **Full screens** (`ND.Screens`, `js/view/screens.js`): Turn report, Units, Recruit, Armory, Research tree, Battles, Diplomacy, Factions, Intel, Objectives, Treasury, Settings, Manual, Victory/Defeat. Each has a title, the same nav and a `‹ City` back button (Esc also closes).
+- Not offered because the rules do not support them: number of AI opponents (all 6 factions always play) and a turn limit.
+
+Tests: `node tests/rules-fingerprint.js .` (rules unchanged), and in the browser console `tests/ui-smoke.js` (every control) and `tests/viewport-sweep.js` (54 screen/tab states checked for overflow, clipping and text under 12px).
 
 ## Phase 1 scope (done)
 

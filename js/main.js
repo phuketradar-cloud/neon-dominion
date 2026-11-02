@@ -1,99 +1,165 @@
-// Boot and main menu (faction selection, new game, continue).
+// Boot, faction selection and new-game setup (V3). Each fits one viewport.
 (function (ND) {
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  // Short pitch per faction: one identity line + three characteristics (two strengths, one weakness).
+  const PITCH = {
+    syndicate: { line: 'A criminal corporation that buys cities instead of fighting for them.', traits: [['+', 'Richer districts (+10% credits)'], ['+', 'Bribes cost 25% less'], ['−', 'Weaker influence campaigns']] },
+    legion: { line: 'A rogue army that holds every block behind steel and checkpoints.', traits: [['+', 'Cheaper, stronger fortifications'], ['+', 'Heavy weapons doctrine in battle'], ['−', 'Slightly lower credit income']] },
+    cult: { line: 'Techno-mystics who see everything through the city\'s cameras.', traits: [['+', 'Sees every rival move and treasury'], ['+', 'Huge intel income, sharper campaigns'], ['−', 'Short on materials']] },
+    mutants: { line: 'Gene-hacked outcasts spreading through the city like an infection.', traits: [['+', 'Territory regrows influence fast'], ['+', 'Tough units that rarely die'], ['−', 'Every district drinks extra energy']] },
+    shadow: { line: 'Spies and assassins who own the city\'s secrets.', traits: [['+', 'Bribes cut security deep'], ['+', 'Ambushes and strong covert ops'], ['−', 'Slightly lower credit income']] },
+    reapers: { line: 'The biggest street gang in the city — and still growing.', traits: [['+', 'Cheaper, stronger campaigns'], ['+', 'Residential blocks pay more'], ['−', 'Fickle loyalty, costly development']] },
+  };
+
   ND.Main = {
     picked: ND.FACTIONS[0].id,
+    setup: null,
 
+    // ---------- faction selection ----------
     showStart() {
+      $('#setupscr').classList.add('hidden');
       $('#start').classList.remove('hidden');
-      $('#seed').value = Math.floor(Math.random() * 1e9);
-      $('#pick').innerHTML = ND.FACTIONS.map((F) => `
-        <button class="pick ${F.id === this.picked ? 'on' : ''}" data-fid="${F.id}" style="--fc:${F.color}">
-          <canvas width="80" height="80" data-fid="${F.id}"></canvas>
-          <span class="pick-name">${esc(F.name)}</span>
-          <span class="pick-leader">${esc(F.leader)}</span>
-          <span class="pick-txt"><b>+</b> ${esc(F.ability)}</span>
-          <span class="pick-txt"><b>$</b> ${esc(F.economy)}</span>
-          <span class="pick-txt bad"><b>−</b> ${esc(F.weakness)}</span>
-        </button>`).join('');
-      document.querySelectorAll('#pick canvas').forEach((c) => ND.drawPortrait(c, c.dataset.fid));
-      this.renderSetup();
-      const m = ND.Save.meta('auto');
-      $('#btn-continue').disabled = !m;
-      $('#continue-info').textContent = m ? `Turn ${m.turn} · ${ND.FDEF[m.faction].name}${m.over ? ' · finished' : ''}` : 'No autosave';
+      this.renderStart();
+    },
+    renderStart() {
+      const F = ND.FDEF[this.picked], P = PITCH[this.picked], TH = ND.FACTION_THEME[this.picked];
+      const auto = ND.Save.meta('auto');
       const slots = ['1', '2', '3'].map((s) => [s, ND.Save.meta(s)]).filter((x) => x[1]);
-      $('#load-slots').innerHTML = slots.length
-        ? slots.map(([s, m2]) => `<button class="btn sm" data-load="${s}">Slot ${s}: T${m2.turn} ${esc(ND.FDEF[m2.faction].short)}</button>`).join('')
-        : '';
+      $('#start').innerHTML = `
+        <header class="menu-head">
+          <div class="brand"><span class="brand-mark"></span><span class="brand-t">NEON <b>DOMINION</b></span></div>
+          <div class="menu-right">
+            <button class="btn" id="btn-tutorial" data-icon="manual" title="Interactive tutorial in Thai (separate practice game)">Tutorial · บทเรียน</button>
+            ${slots.map(([s, m]) => `<button class="btn" data-load="${s}" title="Load slot ${s}">Slot ${s}: T${m.turn} ${esc(ND.FDEF[m.faction].short)}</button>`).join('')}
+            <button class="btn primary" id="btn-continue" ${auto ? '' : 'disabled'} title="${auto ? `Turn ${auto.turn} · ${esc(ND.FDEF[auto.faction].name)}` : 'No autosave yet'}">Continue${auto ? ` · T${auto.turn}` : ''}</button>
+          </div>
+        </header>
+        <main class="fs-stage" style="--fc:${F.color}">
+          <div class="fs-art"><canvas id="fs-art"></canvas><span class="fs-emblem">${ND.emblemSvg(this.picked)}</span></div>
+          <div class="fs-info">
+            <div class="fs-kicker">Choose your empire</div>
+            <h1 class="fs-name">${esc(F.name)}</h1>
+            <div class="fs-leader">${esc(F.leader)} · <i>“${esc(F.motto)}”</i></div>
+            <p class="fs-line">${esc(P.line)}</p>
+            <ul class="fs-traits">${P.traits.map(([k, t]) => `<li class="${k === '+' ? 'good' : 'bad'}">${ND.icon(k === '+' ? 'check' : 'warn')}<span>${esc(t)}</span></li>`).join('')}</ul>
+            <div class="fs-ability"><span>Special ability</span>${esc(F.ability.split(' — ')[0])}</div>
+            <button class="btn primary big fs-go" id="btn-next">${ND.icon('end')}Select ${esc(F.name)}</button>
+            <div class="fs-tag">${esc(TH.tagline)}</div>
+          </div>
+        </main>
+        <nav class="fs-roster" id="pick">${ND.FACTIONS.map((x) => `
+          <button class="fs-card ${x.id === this.picked ? 'on' : ''}" data-fid="${x.id}" style="--fc:${x.color}" title="${esc(x.name)}">
+            <canvas data-fig="leader|${x.id}"></canvas>
+            <span class="fsc-name">${ND.emblemSvg(x.id)}${esc(x.name)}</span>
+          </button>`).join('')}</nav>`;
+      ND.applyIcons($('#start'));
+      this.paintArt();
+    },
+    paintArt() {
+      const dpr = window.devicePixelRatio || 1;
+      const art = $('#fs-art');
+      if (art) { art.width = art.clientWidth * dpr; art.height = art.clientHeight * dpr; ND.drawPortrait(art, this.picked); }
+      document.querySelectorAll('#start canvas[data-fig]').forEach((cv) => { cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr; ND.drawPortrait(cv, cv.dataset.fig.split('|')[1]); });
     },
 
-    // Game setup: difficulty and which victory conditions are in play (with their targets).
+    // ---------- new game setup ----------
+    showSetup() {
+      if (!this.setup) {
+        this.setup = { difficulty: 'normal', victory: JSON.parse(JSON.stringify(ND.VICTORY_DEFAULTS)), seed: Math.floor(Math.random() * 1e9), adv: false };
+      }
+      $('#start').classList.add('hidden');
+      $('#setupscr').classList.remove('hidden');
+      this.renderSetup();
+    },
     renderSetup() {
-      const V = ND.VICTORY_DEFAULTS;
-      const num = (id, val, min, max, step, suffix) =>
-        `<input type="number" id="${id}" value="${val}" min="${min}" max="${max}" step="${step}"> ${suffix}`;
-      const params = {
-        territorial: num('v-territorial-share', V.territorial.share, 25, 90, 5, '% of districts'),
-        domination: '',
-        economic: num('v-economic-target', V.economic.target, 2000, 50000, 500, 'credits'),
-        tech: '',
-        political: `${num('v-political-min', V.political.min, 10, 50, 5, '% influence in')} ${num('v-political-districts', V.political.districts, 20, 100, 5, 'districts')}`,
-      };
-      $('#setup').innerHTML = `
-        <div class="setup-col">
-          <h3>Difficulty</h3>
-          ${Object.entries(ND.DIFFICULTY).map(([k, d]) => `<label class="check"><input type="radio" name="difficulty" value="${k}" ${k === 'normal' ? 'checked' : ''}> <b>${d.label}</b> <span class="dim small">${esc(d.desc)}</span></label>`).join('')}
-        </div>
-        <div class="setup-col wide">
-          <h3>Victory conditions <span class="dim small">(at least one)</span></h3>
-          ${Object.keys(ND.VICTORY_INFO).map((k) => `<div class="vrow"><label class="check"><input type="checkbox" id="v-${k}" ${V[k].on ? 'checked' : ''}> <b>${ND.VICTORY_INFO[k].name}</b></label>
-            <span class="small">${params[k] || `<span class="dim">${esc(ND.VICTORY_INFO[k].desc(V[k]))}</span>`}</span></div>`).join('')}
-        </div>`;
+      const s = this.setup, F = ND.FDEF[this.picked], V = s.victory;
+      const VIC_ICON = { territorial: 'factions', domination: 'battles', economic: 'credits', tech: 'research', political: 'influence' };
+      const DIFF_ICON = { easy: 'check', normal: 'ops', hard: 'warn' };
+      const anyOn = Object.values(V).some((v) => v.on);
+      $('#setupscr').innerHTML = `
+        <header class="menu-head">
+          <button class="btn" data-setup="back">‹ Back to factions</button>
+          <h1 class="menu-title">${ND.icon('settings')}New Game Setup</h1>
+          <span></span>
+        </header>
+        <main class="setup-stage">
+          <aside class="setup-faction" style="--fc:${F.color}">
+            <canvas id="setup-art"></canvas>
+            <div class="sf-info"><span class="sf-k">Your faction</span><b>${ND.emblemSvg(this.picked)}${esc(F.name)}</b><span>${esc(F.leader)}</span>
+              <span class="dim small">${esc(PITCH[this.picked].line)}</span></div>
+          </aside>
+          <section class="setup-opts">
+            <h2>Difficulty</h2>
+            <div class="opt-row">${Object.entries(ND.DIFFICULTY).map(([k, d]) => `
+              <button class="opt-card ${s.difficulty === k ? 'on' : ''}" data-setup="diff" data-v="${k}">${ND.icon(DIFF_ICON[k])}<b>${d.label}</b><span>${esc(d.desc)}</span></button>`).join('')}</div>
+            <h2>Victory conditions <span class="dim small">— pick at least one</span></h2>
+            <div class="opt-row five">${Object.keys(ND.VICTORY_INFO).map((k) => `
+              <button class="opt-card ${V[k].on ? 'on' : ''}" data-setup="vic" data-v="${k}" title="${esc(ND.VICTORY_INFO[k].desc(V[k]))}">${ND.icon(VIC_ICON[k])}<b>${ND.VICTORY_INFO[k].name.replace(' Supremacy', '').replace('Total ', '')}</b><span>${esc(ND.VICTORY_INFO[k].desc(V[k]))}</span><i class="tick">${V[k].on ? '✓' : ''}</i></button>`).join('')}</div>
+            <div class="opt-info">${ND.icon('factions')}<span>Opponents: <b>5 rival factions</b> — every faction is always in play in this version.</span></div>
+            <button class="adv-toggle" data-setup="adv">${s.adv ? '▾' : '▸'} Advanced settings</button>
+            ${s.adv ? `<div class="adv-panel">
+              <label>Territorial target <input type="number" data-setup-in="territorial.share" value="${V.territorial.share}" min="25" max="90" step="5"> % of districts</label>
+              <label>Economic target <input type="number" data-setup-in="economic.target" value="${V.economic.target}" min="2000" max="50000" step="500"> credits</label>
+              <label>Political: <input type="number" data-setup-in="political.min" value="${V.political.min}" min="10" max="50" step="5"> % influence in <input type="number" data-setup-in="political.districts" value="${V.political.districts}" min="20" max="100" step="5"> districts</label>
+              <label>City seed <input type="number" data-setup-in="seed" value="${s.seed}"></label>
+            </div>` : ''}
+          </section>
+        </main>
+        <footer class="setup-foot">
+          <span id="setup-err" class="neg">${anyOn ? '' : 'Enable at least one victory condition.'}</span>
+          <button class="btn primary big" id="btn-new" ${anyOn ? '' : 'disabled'}>${ND.icon('end')}Start game</button>
+        </footer>`;
+      const dpr = window.devicePixelRatio || 1, art = $('#setup-art');
+      art.width = art.clientWidth * dpr; art.height = art.clientHeight * dpr; ND.drawPortrait(art, this.picked);
     },
-
-    readSetup() {
-      const v = JSON.parse(JSON.stringify(ND.VICTORY_DEFAULTS));
-      const n = (id, lo, hi, def) => { const x = Number($(id).value); return Number.isFinite(x) ? Math.max(lo, Math.min(hi, Math.round(x))) : def; };
-      for (const k in v) v[k].on = $(`#v-${k}`).checked;
-      v.territorial.share = n('#v-territorial-share', 25, 90, v.territorial.share);
-      v.economic.target = n('#v-economic-target', 2000, 50000, v.economic.target);
-      v.political.min = n('#v-political-min', 10, 50, v.political.min);
-      v.political.districts = n('#v-political-districts', 20, 100, v.political.districts);
-      const diff = (document.querySelector('input[name="difficulty"]:checked') || {}).value || 'normal';
-      return { victory: v, difficulty: diff };
+    readSetupInputs() {
+      document.querySelectorAll('[data-setup-in]').forEach((inp) => {
+        const key = inp.dataset.setupIn, x = Number(inp.value);
+        if (!Number.isFinite(x)) return;
+        if (key === 'seed') { this.setup.seed = x; return; }
+        const [a, b] = key.split('.');
+        const lim = { 'territorial.share': [25, 90], 'economic.target': [2000, 50000], 'political.min': [10, 50], 'political.districts': [20, 100] }[key];
+        this.setup.victory[a][b] = Math.max(lim[0], Math.min(lim[1], Math.round(x)));
+      });
+    },
+    startGame() {
+      this.readSetupInputs();
+      const s = this.setup;
+      if (!Object.values(s.victory).some((v) => v.on)) return;
+      const g = ND.World.create(s.seed || Math.floor(Math.random() * 1e9), this.picked, { victory: s.victory, difficulty: s.difficulty });
+      if (g.settings.autosave) ND.Save.save(g, 'auto');
+      this.setup = null;
+      ND.UI.start(g);
     },
 
     init() {
       ND.UI.init();
-      $('#pick').addEventListener('click', (e) => {
-        const b = e.target.closest('.pick');
-        if (!b) return;
-        this.picked = b.dataset.fid;
-        document.querySelectorAll('.pick').forEach((x) => x.classList.toggle('on', x === b));
-      });
-      $('#btn-new').addEventListener('click', () => {
-        const seed = Number($('#seed').value) || Math.floor(Math.random() * 1e9);
-        const opts = this.readSetup();
-        if (!Object.values(opts.victory).some((v) => v.on)) {
-          $('#setup-err').textContent = 'Enable at least one victory condition.';
+      document.addEventListener('click', (e) => {
+        const card = e.target.closest('#start .fs-card');
+        if (card) { this.picked = card.dataset.fid; this.renderStart(); return; }
+        if (e.target.closest('#btn-next')) { this.setup = null; this.showSetup(); return; }
+        if (e.target.closest('#btn-tutorial')) { ND.Tutorial.startGame(); return; }
+        if (e.target.closest('#btn-continue')) { const g = ND.Save.load('auto'); if (g) ND.UI.start(g); return; }
+        const ld = e.target.closest('#start [data-load]');
+        if (ld) { const g = ND.Save.load(ld.dataset.load); if (g) ND.UI.start(g); return; }
+        const st = e.target.closest('#setupscr [data-setup]');
+        if (st) {
+          this.readSetupInputs();
+          const k = st.dataset.setup, v = st.dataset.v;
+          if (k === 'back') { this.showStart(); return; }
+          if (k === 'diff') this.setup.difficulty = v;
+          if (k === 'vic') this.setup.victory[v].on = !this.setup.victory[v].on;
+          if (k === 'adv') this.setup.adv = !this.setup.adv;
+          this.renderSetup();
           return;
         }
-        $('#setup-err').textContent = '';
-        const g = ND.World.create(seed, this.picked, opts);
-        if (g.settings.autosave) ND.Save.save(g, 'auto');
-        ND.UI.start(g);
+        if (e.target.closest('#btn-new')) this.startGame();
       });
-      $('#btn-tutorial').addEventListener('click', () => ND.Tutorial.startGame());
-      $('#btn-continue').addEventListener('click', () => {
-        const g = ND.Save.load('auto');
-        if (g) ND.UI.start(g);
-      });
-      $('#load-slots').addEventListener('click', (e) => {
-        const b = e.target.closest('[data-load]');
-        const g = b && ND.Save.load(b.dataset.load);
-        if (g) ND.UI.start(g);
+      window.addEventListener('resize', () => {
+        if (!$('#start').classList.contains('hidden')) this.paintArt();
+        if (!$('#setupscr').classList.contains('hidden')) this.renderSetup();
       });
       this.showStart();
     },
