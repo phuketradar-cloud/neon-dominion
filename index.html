@@ -5,21 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Neon Dominion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <!-- Main menu -->
   <div id="start" class="hidden">
     <div class="start-inner">
-      <h1 class="logo">NEON<span>DOMINION</span></h1>
+      <h1 class="logo"><span class="logo-a">NEON</span><span class="logo-b">DOMINION</span></h1>
       <p class="tagline">The megacity is rotting. Six crime empires want what's left. Choose yours.</p>
-      <div class="tut-banner"><span><b>เล่นครั้งแรก?</b> เริ่มบทเรียนแบบลงมือทำ ทีละขั้น (ภาษาไทย ประมาณ 10 นาที)</span><button id="btn-tutorial" class="btn primary">📘 เริ่มบทเรียน</button></div>
+      <div class="tut-banner"><span><b>เล่นครั้งแรก?</b> เริ่มบทเรียนแบบลงมือทำ ทีละขั้น (ภาษาไทย ประมาณ 10 นาที)</span><button id="btn-tutorial" class="btn primary" data-icon="manual">เริ่มบทเรียน</button></div>
       <div id="pick"></div>
       <div id="setup" class="setup"></div>
       <div class="start-bar">
         <label>City seed <input id="seed" type="number"></label>
-        <button id="btn-new" class="btn primary">Seize the city ▸</button>
+        <button id="btn-new" class="btn primary big" data-icon="end">Seize the city</button>
         <span id="setup-err" class="neg small"></span>
         <span class="sep"></span>
         <button id="btn-continue" class="btn">Continue</button>
@@ -32,26 +33,31 @@
   <!-- Game -->
   <div id="game" class="hidden">
     <header id="topbar">
-      <div class="logo small-logo">NEON<span>DOMINION</span></div>
-      <div id="resources"></div>
-      <div id="turn" class="pill"></div>
-      <div id="ops" class="pill"></div>
-      <div id="unitpill" class="pill"></div>
-      <button id="rdpill" class="pill" data-screen="research"></button>
-      <nav>
-        <button class="btn sm" data-screen="report">Briefing</button>
-        <button class="btn sm" data-screen="units">Units</button>
-        <button class="btn sm" data-screen="recruit">Recruit</button>
-        <button class="btn sm" data-screen="armory">Armory</button>
-        <button class="btn sm" data-screen="battles">Battles</button>
-        <button class="btn sm" data-screen="diplomacy">Diplomacy</button>
-        <button class="btn sm" data-screen="factions">Factions</button>
-        <button class="btn sm" data-screen="intel">Intel</button>
-        <button class="btn sm" data-screen="victory">Victory</button>
-        <button class="btn sm" data-screen="help">Manual</button>
-        <button class="btn sm" data-screen="settings">Settings</button>
+      <div class="tb-main">
+        <div class="brand"><span class="brand-mark"></span><span class="brand-t">NEON <b>DOMINION</b></span></div>
+        <div id="resources"></div>
+        <div class="tb-stats">
+          <div id="turn" class="pill"></div>
+          <div id="ops" class="pill"></div>
+          <div id="unitpill" class="pill"></div>
+          <button id="rdpill" class="pill" data-screen="research"></button>
+        </div>
+        <button id="btn-end" class="btn end" data-cmd="end" data-icon="end">END TURN</button>
+      </div>
+      <nav class="tb-nav">
+        <button class="btn sm" data-screen="report" data-icon="briefing">Briefing</button>
+        <button class="btn sm" data-screen="units" data-icon="units">Units</button>
+        <button class="btn sm" data-screen="recruit" data-icon="recruit">Recruit</button>
+        <button class="btn sm" data-screen="armory" data-icon="armory">Armory</button>
+        <button class="btn sm" data-screen="battles" data-icon="battles">Battles</button>
+        <button class="btn sm" data-screen="diplomacy" data-icon="diplomacy">Diplomacy</button>
+        <button class="btn sm" data-screen="factions" data-icon="factions">Factions</button>
+        <button class="btn sm" data-screen="intel" data-icon="intelnav">Intel</button>
+        <button class="btn sm" data-screen="victory" data-icon="victory">Victory</button>
+        <button class="btn sm" data-screen="help" data-icon="manual">Manual</button>
+        <button class="btn sm" data-screen="settings" data-icon="settings">Settings</button>
+        <span class="tb-hint">Keys: arrows select · 1–5 operations · E end turn · Esc close</span>
       </nav>
-      <button id="btn-end" class="btn end" data-cmd="end">END TURN ▸</button>
     </header>
     <aside id="left"></aside>
     <main id="center">
@@ -89,6 +95,7 @@
   <script src="js/core/turn.js"></script>
   <script src="js/core/save.js"></script>
   <!-- Rendering / interface -->
+  <script src="js/view/icons.js"></script>
   <script src="js/view/art.js"></script>
   <script src="js/view/mapview.js"></script>
   <script src="js/view/ui.js"></script>

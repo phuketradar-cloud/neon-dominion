@@ -56,6 +56,8 @@
         if (t.matches('.equip-sel')) this.equipSlot(Number(t.dataset.unit), Number(t.dataset.slot), t.value);
       });
       document.addEventListener('keydown', (e) => this.key(e));
+      ND.applyIcons();
+      this.initTips();
     },
 
     start(g) {
@@ -112,26 +114,86 @@
     // ---------- top bar ----------
     renderTop() {
       const g = this.g, f = g.factions[g.player], L = ND.Econ.ledger(g, g.player);
-      $('#resources').innerHTML = ND.RES.map((r) => `
-        <div class="res" title="${ND.RES_LABEL[r]}: ${f.res[r]} in stock, ${sgn(L.net[r])} projected next turn">
-          <span class="res-k c-${r}">${ND.RES_SHORT[r]}</span>
-          <span class="res-v">${f.res[r]}</span>
-          <span class="res-d ${L.net[r] < 0 ? 'neg' : 'pos'}">${sgn(L.net[r])}</span>
-        </div>`).join('');
-      $('#turn').innerHTML = `TURN <b>${g.turn}</b>`;
+      const RES_ICON = { credits: 'credits', energy: 'energy', materials: 'materials', intel: 'intel' };
+      // Build the resource chips once, then update numbers in place so changes can animate.
+      if (!$('#resources .res')) {
+        $('#resources').innerHTML = ND.RES.map((r) => `
+          <div class="res c-${r}" data-res="${r}">
+            ${ND.icon(RES_ICON[r])}
+            <span class="res-k">${ND.RES_LABEL[r]}</span>
+            <span class="res-row"><span class="res-v num">0</span><span class="res-d"></span></span>
+          </div>`).join('');
+      }
+      for (const r of ND.RES) {
+        const el = $(`#resources [data-res="${r}"]`);
+        el.title = `${ND.RES_LABEL[r]}: ${f.res[r]} in stock.\nNext turn: ${sgn(L.net[r])} (income ${L.income[r]}, upkeep ${L.upkeep[r]}).`;
+        this.tween(el, f.res[r]);
+        const dEl = el.querySelector('.res-d');
+        dEl.textContent = sgn(L.net[r]);
+        dEl.className = 'res-d ' + (L.net[r] < 0 ? 'neg' : 'pos');
+      }
+      $('#turn').innerHTML = `${ND.icon('turn')}<span class="lbl">Turn</span> <b>${g.turn}</b>`;
+      $('#turn').title = 'Current turn';
       const max = ND.Actions.maxOps(g, g.player);
-      $('#ops').innerHTML = `OPS <b>${f.ops}</b>/${max}`;
+      $('#ops').innerHTML = `${ND.icon('ops')}<span class="lbl">Ops</span> <b>${f.ops}</b>/${max}`;
+      $('#ops').title = `Operation points left this turn: ${f.ops} of ${max}.\nEach district or covert operation costs operation points.`;
       $('#ops').classList.toggle('empty', f.ops === 0);
       const us = ND.Units.list(g, g.player);
       const idle = us.filter((u) => !u.injured && u.task.kind === 'rest').length;
-      $('#unitpill').innerHTML = `UNITS <b>${us.length}</b>/${ND.Units.cap(g, g.player)}${idle ? ` <span class="warn" title="Healthy units with no orders">· ${idle} idle</span>` : ''}`;
+      $('#unitpill').innerHTML = `${ND.icon('units')}<span class="lbl">Units</span> <b>${us.length}</b>/${ND.Units.cap(g, g.player)}${idle ? ` <span class="warn">· ${idle} idle</span>` : ''}`;
+      $('#unitpill').title = `Units ${us.length} of ${ND.Units.cap(g, g.player)} (cap grows with territory).${idle ? `\n${idle} healthy unit${idle > 1 ? 's have' : ' has'} no orders.` : ''}`;
       const cur = f.tech.current;
       $('#rdpill').innerHTML = cur
-        ? `R&amp;D <b>${esc(ND.TECHS[cur.id].name)}</b> ${cur.progress}/${ND.TECHS[cur.id].rp}`
-        : 'R&amp;D <span class="warn">idle — choose</span>';
-      $('#rdpill').title = 'Open the technology tree';
+        ? `${ND.icon('research')}<b>${esc(ND.TECHS[cur.id].name)}</b> <span class="num">${cur.progress}/${ND.TECHS[cur.id].rp}</span>`
+        : `${ND.icon('research')}<span class="warn">Research idle</span>`;
+      $('#rdpill').title = cur ? `Researching ${ND.TECHS[cur.id].name}: ${cur.progress}/${ND.TECHS[cur.id].rp} research points.\nClick to open the technology tree.` : 'No research project. Click to open the technology tree.';
       $('#btn-end').disabled = !!g.over;
       $('#btn-end').classList.toggle('ready', f.ops === 0 && !g.over);
+    },
+
+    // Count a resource chip toward its new value (display only).
+    tween(el, to) {
+      const v = el.querySelector('.res-v');
+      const from = Number(el.dataset.v ?? to);
+      el.dataset.v = to;
+      if (from === to) { v.textContent = to; return; }
+      el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+      const t0 = performance.now(), dur = 450;
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        v.textContent = Math.round(from + (to - from) * e);
+        if (k < 1 && el.dataset.v == to) requestAnimationFrame(step); else v.textContent = el.dataset.v;
+      };
+      requestAnimationFrame(step);
+      setTimeout(() => { v.textContent = el.dataset.v; }, dur + 50); // settle even if frames are paused
+    },
+
+    // Styled tooltips for every [title] element: the title moves to data-tip while hovering.
+    initTips() {
+      const tip = document.createElement('div');
+      tip.id = 'tip';
+      document.body.appendChild(tip);
+      let cur = null;
+      const hide = () => { tip.classList.remove('on'); if (cur && cur.dataset.tip != null) { cur.title = cur.dataset.tip; delete cur.dataset.tip; } cur = null; };
+      document.addEventListener('mouseover', (e) => {
+        const el = e.target.closest && e.target.closest('[title]');
+        if (!el || el === cur) return;
+        hide();
+        if (!el.title) return;
+        cur = el; el.dataset.tip = el.title; el.title = '';
+        tip.textContent = el.dataset.tip;
+        const r = el.getBoundingClientRect();
+        tip.classList.add('on');
+        const tw = tip.offsetWidth, th = tip.offsetHeight;
+        let x = Math.min(window.innerWidth - tw - 8, Math.max(8, r.left + r.width / 2 - tw / 2));
+        let y = r.bottom + 8;
+        if (y + th > window.innerHeight - 8) y = r.top - th - 8;
+        tip.style.left = x + 'px';
+        tip.style.top = y + 'px';
+      });
+      document.addEventListener('mouseout', (e) => { if (cur && !cur.contains(e.relatedTarget)) hide(); });
+      document.addEventListener('mousedown', hide, true);
+      document.addEventListener('scroll', hide, true);
     },
 
     // ---------- left: faction & ledger ----------
@@ -446,19 +508,26 @@
     // ---------- tooltip / toast ----------
     tooltip(id, e) {
       const tip = $('#tooltip');
-      if (id < 0 || !e || !this.g) { tip.classList.add('hidden'); this.drawMap(); return; }
+      // The map's own animation loop draws the hover highlight; this only manages the info bubble.
+      if (id < 0 || !e || !this.g) { tip.classList.add('hidden'); return; }
       const g = this.g, d = g.districts[id];
-      tip.innerHTML = `<b>${esc(d.name)}</b> <span class="dim">${sector(d)}</span><br>${esc(ND.TYPES[d.type].label)}<br>${d.owner ? esc(ND.FDEF[d.owner].name) : 'Unaligned'} · your influence ${ND.Inf.get(d, g.player)}%`;
+      const held = d.facilities.filter((f) => f.owner === g.player).length;
+      tip.innerHTML = `<div class="tt-name">${esc(d.name)} <span class="dim small">${sector(d)}</span></div>
+        <div class="dim">${esc(ND.TYPES[d.type].label)}${d.hq ? ' · HQ' : ''}</div>
+        <div class="tt-row"><span>Controller</span><b style="color:${d.owner ? ND.FDEF[d.owner].color : 'inherit'}">${d.owner ? esc(ND.FDEF[d.owner].name) : 'Unaligned'}</b></div>
+        <div class="tt-row"><span>Your influence</span><b>${ND.Inf.get(d, g.player)}%</b></div>
+        <div class="tt-row"><span>Security</span><b>${d.security}</b></div>
+        <div class="tt-row"><span>Facilities held</span><b>${held}/${d.facilities.length}</b></div>`;
       const box = $('#center').getBoundingClientRect();
-      tip.style.left = Math.min(e.clientX - box.left + 14, box.width - 200) + 'px';
-      tip.style.top = e.clientY - box.top + 14 + 'px';
       tip.classList.remove('hidden');
-      this.drawMap();
+      tip.style.left = Math.min(e.clientX - box.left + 16, box.width - tip.offsetWidth - 8) + 'px';
+      tip.style.top = Math.min(e.clientY - box.top + 16, box.height - tip.offsetHeight - 8) + 'px';
     },
     toast(msg, kind) {
       const el = document.createElement('div');
       el.className = 'toast ' + (kind || '');
-      el.textContent = msg;
+      el.innerHTML = ND.icon(kind === 'err' ? 'warn' : kind === 'ok' ? 'check' : 'help');
+      el.appendChild(document.createElement('span')).textContent = msg;
       $('#toasts').appendChild(el);
       setTimeout(() => el.classList.add('out'), 2600);
       setTimeout(() => el.remove(), 3100);
