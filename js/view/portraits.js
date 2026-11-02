@@ -195,31 +195,86 @@
     syndicate: { fx: 0.51, fy: 0.19 }, legion: { fx: 0.57, fy: 0.17 }, cult: { fx: 0.51, fy: 0.21 },
     mutants: { fx: 0.57, fy: 0.15 }, shadow: { fx: 0.52, fy: 0.24 }, reapers: { fx: 0.57, fy: 0.15 },
   };
-  const waiting = []; // canvases drawn with the vector fallback before their image finished loading
+  const waiting = []; // [canvas, redraw] drawn with the vector fallback before their image finished loading
+  const redrawWaiting = () => { for (const [cv, redraw] of waiting.splice(0)) if (cv.isConnected) redraw(); };
+  const ready = (img) => img.complete && img.naturalWidth > 0;
   for (const fid in LEADER_ART) {
     const img = new Image();
-    img.onload = () => { for (const [cv, f] of waiting.splice(0)) if (cv.isConnected) ND.drawPortrait(cv, f); };
+    img.onload = redrawWaiting;
     img.src = `assets/factions/${fid}.webp`;
     LEADER_ART[fid].img = img;
   }
-  const drawLeaderArt = (canvas, art) => {
-    const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height, img = art.img;
-    const iw = img.naturalWidth, ih = img.naturalHeight, ca = W / H;
-    const zoom = ca > 1.3 ? 1.7 : ca > 0.9 ? 1.35 : 1; // small cards and strips zoom towards the face
+  // Cover-crop an illustration into the canvas around its face. zoom: [wide strip, square, tall].
+  const drawArt = (ctx, W, H, art, zoom = [1.7, 1.35, 1], clear = true) => {
+    const img = art.img, iw = img.naturalWidth, ih = img.naturalHeight, ca = W / H, k = ca > 1.3 ? 0 : ca > 0.9 ? 1 : 2;
     let vw = ca > iw / ih ? iw : ih * ca, vh = vw / ca;
-    vw /= zoom; vh /= zoom;
-    const faceAt = ca > 1.3 ? 0.45 : ca > 0.9 ? 0.4 : 0.3; // where the face sits in the crop, from the top
+    vw /= zoom[k]; vh /= zoom[k];
+    const faceAt = [0.45, 0.4, 0.3][k]; // where the face sits in the crop, from the top
     const sx = Math.max(0, Math.min(iw - vw, art.fx * iw - vw / 2));
     const sy = Math.max(0, Math.min(ih - vh, art.fy * ih - vh * faceAt));
-    ctx.clearRect(0, 0, W, H);
+    if (clear) ctx.clearRect(0, 0, W, H);
     ctx.drawImage(img, sx, sy, vw, vh, 0, 0, W, H);
   };
 
   ND.drawPortrait = (canvas, fid) => {
     const F = ND.FDEF[fid], art = LEADER_ART[fid];
-    if (art && art.img.complete && art.img.naturalWidth) return drawLeaderArt(canvas, art);
+    if (art && ready(art.img)) return drawArt(canvas.getContext('2d'), canvas.width, canvas.height, art);
     ND.drawFigure(canvas, { seed: F.leader, fid, role: 'leader', accent: F.portrait.accent, skin: F.portrait.skin, hair: F.portrait.hair });
-    if (art) waiting.push([canvas, fid]);
+    if (art) waiting.push([canvas, () => ND.drawPortrait(canvas, fid)]);
+  };
+
+  // Fixed roster characters (ND.ROSTER): transparent cut-outs over a neon backdrop in their faction's colour.
+  // Images load on first use; the face is found from the top of the figure unless the entry sets fx/fy.
+  const ROSTER_ART = {};
+  let byName = null;
+  ND.rosterOf = (name) => {
+    if (!byName) byName = Object.fromEntries((ND.ROSTER || []).map((r) => [r.name, r]));
+    return byName[name] || null;
+  };
+  const faceOf = (img) => {
+    const c = document.createElement('canvas'), w = 40, h = 50; c.width = w; c.height = h;
+    const x = c.getContext('2d'); x.drawImage(img, 0, 0, w, h);
+    const d = x.getImageData(0, 0, w, h).data, solid = (px, py) => d[(py * w + px) * 4 + 3] > 120;
+    let top = 0; while (top < h - 1 && ![...Array(w).keys()].some((px) => solid(px, top))) top++;
+    let sum = 0, n = 0; for (let py = top; py < Math.min(h, top + 6); py++) for (let px = 0; px < w; px++) if (solid(px, py)) { sum += px; n++; }
+    return { fx: n ? sum / n / w : 0.5, fy: Math.min(0.6, top / h + 0.08) };
+  };
+  const rosterArt = (r) => {
+    let a = ROSTER_ART[r.id];
+    if (!a) {
+      a = ROSTER_ART[r.id] = { img: new Image(), fx: r.fx, fy: r.fy, failed: false };
+      a.img.onload = redrawWaiting;
+      a.img.onerror = () => { a.failed = true; };
+      a.img.src = `assets/units/${r.type}/${r.id}.webp`;
+    }
+    return a;
+  };
+  const drawRosterArt = (canvas, a, r, fid) => {
+    // the image can be complete before its onload handler runs, so find the face here on first draw
+    if (a.fx == null || a.fy == null) { const f = faceOf(a.img); if (a.fx == null) a.fx = f.fx; if (a.fy == null) a.fy = f.fy; }
+    const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height, col = ND.FDEF[fid] ? ND.FDEF[fid].color : '#42d5e8';
+    const bg = ctx.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#1a2840'); bg.addColorStop(1, '#0a0f19');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    let s = ND.hashStr(r.id); // a skyline of its own per character
+    const rnd = () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    ctx.fillStyle = 'rgba(120, 150, 190, .10)';
+    for (let x = 0; x < W;) { const bw = W * (0.08 + rnd() * 0.12), bh = H * (0.25 + rnd() * 0.45); ctx.fillRect(x, H - bh, bw - W * 0.01, bh); x += bw; }
+    const glow = ctx.createRadialGradient(W * 0.5, H * 0.35, 0, W * 0.5, H * 0.35, Math.max(W, H) * 0.7);
+    glow.addColorStop(0, col + '66'); glow.addColorStop(1, col + '00');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+    drawArt(ctx, W, H, a, [1.7, 1.45, 1.05], false);
+    const vig = ctx.createLinearGradient(0, H * 0.7, 0, H); vig.addColorStop(0, 'rgba(10,15,25,0)'); vig.addColorStop(1, 'rgba(10,15,25,.55)');
+    ctx.fillStyle = vig; ctx.fillRect(0, H * 0.7, W, H * 0.3);
+  };
+  const drawVectorFigure = ND.drawFigure;
+  ND.drawFigure = (canvas, spec) => {
+    const r = spec.role !== 'leader' && ND.rosterOf(spec.seed);
+    if (r) {
+      const a = rosterArt(r);
+      if (ready(a.img)) return drawRosterArt(canvas, a, r, spec.fid);
+      if (!a.failed) waiting.push([canvas, () => ND.drawFigure(canvas, spec)]);
+    }
+    return drawVectorFigure(canvas, spec);
   };
   ND.drawUnitPortrait = (canvas, u) => {
     ND.drawFigure(canvas, { seed: u.name, fid: u.fid, role: u.type, accent: ND.UNIT_TYPES[u.type].accent, skin: u.skin, hair: u.hair });

@@ -107,18 +107,33 @@
     },
 
     // ---------- recruitment ----------
+    // Fixed characters (ND.ROSTER) still free to appear, by unit type. Types without roster entries are absent and
+    // keep generated recruits. Taken = on any faction's roster, in any market, or killed earlier this game.
+    rosterFree(g) {
+      if (!ND.ROSTER || !ND.ROSTER.length) return null;
+      const taken = new Set(g.rosterGone || []);
+      for (const u of Object.values(g.units)) if (u.rid) taken.add(u.rid);
+      for (const fid of g.order) for (const c of g.factions[fid].market || []) if (c.rid) taken.add(c.rid);
+      const free = {};
+      for (const r of ND.ROSTER) { free[r.type] = free[r.type] || []; if (!taken.has(r.id)) free[r.type].push(r); }
+      return free;
+    },
     makeCandidate(g, fid) {
-      const sig = ND.SIGNATURE[fid];
-      const type = ND.weighted(g, Object.keys(ND.UNIT_TYPES).map((k) => [k, ND.UNIT_TYPES[k].weight * (k === sig ? 3 : 1)]));
+      const sig = ND.SIGNATURE[fid], free = U.rosterFree(g);
+      const type = ND.weighted(g, Object.keys(ND.UNIT_TYPES).map((k) => [k, free && free[k] && !free[k].length ? 0 : ND.UNIT_TYPES[k].weight * (k === sig ? 3 : 1)]));
       const T = ND.UNIT_TYPES[type];
       const base = {};
       for (const k of STATS) base[k] = Math.max(0, T[k] + ND.randInt(g, -1, 1));
-      return {
+      const c = {
         type, base,
         name: `${ND.pick(g, FIRST)} "${ND.pick(g, CALL)}" ${ND.pick(g, LAST)}`,
         skin: type === 'mutant' ? '#8fae6a' : ND.pick(g, SKINS),
         hair: ND.pick(g, HAIRS),
       };
+      // Picking the character draws nothing from the RNG, so the rest of the game's random sequence is unchanged.
+      const pool = free && free[type];
+      if (pool && pool.length) { const r = pool[ND.hashStr(c.name) % pool.length]; c.name = r.name; c.rid = r.id; }
+      return c;
     },
     refreshMarket(g, fid) {
       const f = g.factions[fid];
@@ -162,7 +177,7 @@
       for (const r of ND.RES) f.res[r] -= chk.cost[r] || 0;
       const T = ND.UNIT_TYPES[c.type];
       const u = {
-        id: g.nextUnit++, fid, type: c.type, name: c.name, base: c.base, skin: c.skin, hair: c.hair,
+        id: g.nextUnit++, fid, type: c.type, name: c.name, rid: c.rid, base: c.base, skin: c.skin, hair: c.hair,
         level: 1, xp: 0, loc: f.hq, task: { kind: 'rest' }, injured: 0, moved: false,
         equip: T.slots.map(() => null), joined: g.turn,
       };
@@ -178,6 +193,7 @@
     },
     kill(g, u, how) {
       delete g.units[u.id];
+      if (u.rid) (g.rosterGone = g.rosterGone || []).push(u.rid); // a fixed character never returns once dead
       ND.Log.add(g, { cat: 'unit', who: u.fid, d: u.loc, public: u.fid === g.player, text: `${label(u)} of ${fname(u.fid)} was ${how}.` });
     },
     injure(g, u, turns, how) {

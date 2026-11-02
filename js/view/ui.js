@@ -377,9 +377,11 @@
       const v = this.orderView(u, cur);
       const opts = ND.Units.tasks(g, u);
       const aimed = opts.filter((t) => ['seize', 'sabotage', 'attack'].includes(t.kind));
-      const tab = this.utab;
+      const ros = ND.rosterOf(u.name);
+      const tab = this.utab === 'profile' && !ros ? 'orders' : this.utab;
       let body;
-      if (u.injured) body = `<div class="d-status st-danger">${ND.icon('warn')}<span>Injured — resting ${u.injured} more turn(s). Orders resume when healed.</span></div>`;
+      if (tab === 'profile') body = `<div class="ud-profile"><q>${esc(ros.quote)}</q><p>${esc(ros.bio)}</p><span class="small dim">With you since turn ${u.joined || 1}</span></div>`;
+      else if (u.injured) body = `<div class="d-status st-danger">${ND.icon('warn')}<span>Injured — resting ${u.injured} more turn(s). Orders resume when healed.</span></div>`;
       else if (tab === 'targets') body = aimed.length ? `<div class="orders">${aimed.map((t) => this.orderBtn(u, t)).join('')}</div>` : '<div class="ctx-empty small">No facilities or enemies to target in this district.</div>';
       else if (tab === 'gear') {
         const f = g.factions[u.fid];
@@ -405,7 +407,7 @@
         <div class="ud-eq">${T.slots.map((slot, i) => (u.equip[i] ? `<span class="eq" title="${esc(slot)}">${esc(ND.ITEMS[u.equip[i]].label)}</span>` : `<span class="eq empty">${esc(slot)}</span>`)).join('')}</div>
         <div class="ud-assign">${v.icon}<span>Assignment: <b>${u.task.kind === 'rest' && !u.injured ? '<span class="warn">none</span>' : esc(v.name)}</b></span>
           <button class="btn sm u-move" data-cmd="move" data-arg="${u.id}" ${u.injured || u.moved ? 'disabled' : ''} title="${u.injured ? 'Injured units cannot move' : u.moved ? 'Already moved this turn' : 'Move (then click a green district)'}">${ND.icon('move')}Move</button></div>
-        <div class="ctx-tabs">${[['orders', 'Orders'], ['targets', `Targets <span class="cnt">${aimed.length}</span>`], ['gear', 'Gear']].map(([k, l]) => `<button class="ctx-tab ${tab === k ? 'on' : ''}" data-cmd="utab" data-arg="${k}">${l}</button>`).join('')}</div>
+        <div class="ctx-tabs">${[['orders', 'Orders'], ['targets', `Targets <span class="cnt">${aimed.length}</span>`], ['gear', 'Gear'], ...(ros ? [['profile', 'Profile']] : [])].map(([k, l]) => `<button class="ctx-tab ${tab === k ? 'on' : ''}" data-cmd="utab" data-arg="${k}">${l}</button>`).join('')}</div>
         <div class="ud-body">${body}</div>
         <div class="ud-foot"><span class="small dim" title="${esc(T.special)}">${ND.icon('star')}${esc(T.special.split(' — ')[0])}</span><button class="btn xs danger" data-cmd="dismiss" data-arg="${u.id}">Dismiss</button></div>
       </div>`;

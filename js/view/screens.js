@@ -44,7 +44,7 @@
     heavy: ['Doors are suggestions.', 'Moves like a rumour of thunder.', 'Polishes the armour every night.'],
     agent: ['Knows a guy who knows a guy.', 'Smiles like a closed deal.', 'Never forgets a favour owed.'],
   };
-  const persona = (c) => { const L = PERSONA[c.type]; return L[ND.hashStr(c.name) % L.length]; };
+  const persona = (c) => { const r = ND.rosterOf(c.name); if (r) return `“${r.quote}”`; const L = PERSONA[c.type]; return L[ND.hashStr(c.name) % L.length]; };
   const ITEM_CAT = { pistol: 'weapons', smg: 'weapons', rifle: 'weapons', plasma: 'weapons', rail: 'weapons', vest: 'armor', plate: 'armor', exo: 'armor', deck: 'cyber', comms: 'cyber', medkit: 'special', cloak: 'special' };
   const ITEM_ICON = { weapons: 'assassinate', armor: 'armory', cyber: 'intel', special: 'star' };
   const TECH_ICON = { military: 'battles', bio: 'plague', info: 'intel', faction: 'star', ultimate: 'crown' };
@@ -220,6 +220,7 @@
           <div class="art-tall"><canvas data-fig="cand|${i}"></canvas>${c.type === sig ? '<span class="ribbon">Signature</span>' : ''}</div>
           <div class="dt-name">${esc(nm.first)} <span class="nick">“${esc(nm.nick)}”</span> ${esc(nm.last)}</div>
           <div class="dt-sub">${esc(T.label)} · <i>${esc(persona(c))}</i></div>
+          ${ND.rosterOf(c.name) ? `<div class="dt-bio" title="${esc(ND.rosterOf(c.name).bio)}">${esc(ND.rosterOf(c.name).bio)}</div>` : ''}
           <div class="stat-row big">${['atk', 'def', 'inf', 'int'].map((k) => `<div class="stat-b"><span>${ND.STAT_LABEL[k]}</span><b>${c.base[k]}</b></div>`).join('')}</div>
           <div class="trait good">${ND.icon('star')}<div><b>Special</b>${esc(T.special)}</div></div>
           <div class="kv"><span>Hire cost</span><b>${costHtml(chk.cost)}</b></div>
