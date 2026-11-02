@@ -22,6 +22,21 @@ reads the game state object `g` and changes it only through core functions. The 
 | AI | — (runs inside `Turn.end`) | `AI.*`, `Diplo.aiTurn`, `Market.aiTrade` | Briefing events only |
 | Tutorial | `g.tutorial` | — (view only) | Coach card + highlight ring (`tutorial.js`) |
 
+## UI redesign (after the audit)
+Presentation-only changes; `git diff pre-ui-redesign -- js/core` is empty and `tests/rules-fingerprint.js`
+gives identical hashes before and after.
+
+- `css/style.css` — rewritten theme: palette tokens, Rajdhani / Inter / IBM Plex Mono, cards, responsive rules
+  for 1920×1080, 1600×900, 1536×864 and 1366×768.
+- `js/view/icons.js` — shared line-icon set (`ND.icon(name)`, `[data-icon]` decoration).
+- `js/view/art.js` — `ND.drawBuilding` (vector art per district type) and `ND.drawDistrictHero`.
+- `js/view/mapview.js` — cached static layer + ~30 fps animated layer (selection, hover, tutorial pointer);
+  cells up to 1.4× wider than tall; Facilities overlay.
+- `js/view/ui.js` — two-tier top bar with animated counters, faction profile card, district cards, unit cards
+  with condition and equipment, action cards (icon, description, expected result, cost, OPS, reason),
+  styled tooltips for every `[title]`, turn activity overlay and per-faction territory changes.
+- Testing: `tests/ui-smoke.js` drives every control through the DOM; run it at each target resolution.
+
 ## Event wiring that must keep working
 Delegated click handler on `document` in `UI.init`: `[data-act]` (district ops), `[data-mode]` (map overlay),
 `[data-screen]` (modals), `[data-cmd]` (everything else, with `data-arg`/`data-arg2`). `change` on `.equip-sel`.

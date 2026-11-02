@@ -49,7 +49,12 @@
   // keyboard
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); checks.keyboard = true;
   // end turns
-  for (let i = 0; i < 6 && !g.over; i++) { click('#btn-end'); await wait(60); U.closeModal(); }
+  // End Turn is asynchronous (it shows an activity overlay first), so wait for the turn counter to move.
+  for (let i = 0; i < 6 && !g.over; i++) {
+    const t = g.turn; click('#btn-end');
+    for (let k = 0; k < 50 && g.turn === t; k++) await wait(20);
+    await wait(30); U.closeModal();
+  }
   checks.turns = g.turn;
   // save/load
   if (!localStorage.getItem('neon-dominion:v1:3')) {

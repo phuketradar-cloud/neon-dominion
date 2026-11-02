@@ -16,7 +16,24 @@
   const bar = (v, color) => `<span class="bar"><i style="width:${Math.max(0, Math.min(100, v))}%;background:${color}"></i></span>`;
   const CAT = { op: 'OPS', control: 'CONTROL', conflict: 'CONFLICT', alert: 'ALERT', econ: 'ECON', unit: 'UNITS', battle: 'BATTLE', tech: 'R&D', spy: 'COVERT', diplo: 'DIPLOMACY' };
   const statLine = (s) => ['atk', 'def', 'inf', 'int'].map((k) => `<span class="st"><i>${ND.STAT_LABEL[k]}</i>${s[k]}</span>`).join('');
-  const ORDER_ICON = { rest: '💤', canvass: '📢', guard: '🛡', intel: '🔍', train: '🎯', hq: '◆', seize: '🏢', sabotage: '💣', attack: '⚔' };
+  const ORDER_ICON = { rest: 'rest', canvass: 'canvass', guard: 'guard', intel: 'gather', train: 'train', hq: 'hq', seize: 'seize', sabotage: 'sabotage', attack: 'attack' };
+  const ACTION_SHORT = {
+    campaign: 'Raise your influence with propaganda and payoffs.',
+    consolidate: 'Tighten your hold and push rival influence out.',
+    bribe: 'Lower security so influence is easier to win.',
+    fortify: 'Raise security: rivals gain less and get cracked down on.',
+    develop: 'Boost this district\'s output (×1.5, then ×2).',
+  };
+  const COVERT_ICON = { spy: 'spy', opinion: 'opinion', disrupt: 'disrupt', sabotage: 'sabotage', steal: 'steal', plague: 'plague', assassinate: 'assassinate' };
+  const COVERT_SHORT = {
+    spy: 'See the district and its owner\'s treasury for 3 turns.',
+    opinion: 'Gain influence here and cut the controller\'s.',
+    disrupt: 'Siphon 15% of the owner\'s credits (max 150).',
+    sabotage: 'Knock a production district offline for 3 turns.',
+    steal: 'Copy one technology the owner has.',
+    plague: 'Wound every unit here and hit the controller.',
+    assassinate: 'Leave a rival leaderless for 3 turns.',
+  };
   const ORDER_HELP = {
     rest: 'Do nothing this turn. Injured units rest automatically.',
     canvass: 'Spread your influence in this district every turn. High security may injure the unit; enemy guards may intercept it.',
@@ -200,59 +217,78 @@
     renderLeft() {
       const g = this.g, p = g.player, F = ND.FDEF[p], f = g.factions[p], L = ND.Econ.ledger(g, p);
       const st = ND.Turn.standings(g);
+      const me = st.find((s) => s.fid === p), rank = st.indexOf(me) + 1;
       const vp = ND.Victory.progress(g, p);
       const best = Object.keys(vp).sort((a, b) => vp[b].pct - vp[a].pct)[0];
+      // Reputation: average relations with living rivals, plus active pacts (diplomacy data).
+      const rivals = g.order.filter((x) => x !== p && g.factions[x].alive);
+      const avgRel = rivals.length ? Math.round(rivals.reduce((a, x) => a + ND.Diplo.rel(g, p, x), 0) / rivals.length) : 0;
+      const pacts = rivals.filter((x) => ND.Diplo.pact(g, p, x)).length;
+      const repTxt = avgRel >= 30 ? 'Trusted' : avgRel >= 10 ? 'Respected' : avgRel > -10 ? 'Neutral' : avgRel > -30 ? 'Distrusted' : 'Hated';
+      const repCls = avgRel >= 10 ? 'pos' : avgRel > -10 ? '' : 'neg';
+      const stat = (icon, k, v, title, txt) => `<div class="fp-stat" title="${esc(title)}"><div class="k">${ND.icon(icon)}${k}</div><div class="v${txt ? ' txt' : ''}">${v}</div></div>`;
       $('#left').innerHTML = `
         <section class="panel faction-card" style="--fc:${F.color}">
-          <div class="fc-head">
-            <canvas id="portrait" width="96" height="96"></canvas>
+          <div class="fp-hero">
+            <div class="fp-portrait"><canvas id="portrait" width="96" height="96"></canvas></div>
             <div>
-              <div class="fc-name">${esc(F.name)}</div>
-              <div class="dim small">${esc(F.leader)}</div>
-              <div class="fc-motto">“${esc(F.motto)}”</div>
+              <div class="fp-name">${esc(F.name)}</div>
+              <div class="fp-leader">${esc(F.leader)}</div>
+              <div class="fp-motto">“${esc(F.motto)}”</div>
             </div>
           </div>
-          <div class="kv"><span>Districts</span><b>${L.districts}</b></div>
-          ${best ? `<div class="kv"><span>Closest win</span><b><button class="linkbtn" data-screen="victory">${esc(ND.VICTORY_INFO[best].name)}</button> ${Math.floor(vp[best].pct * 100)}%</b></div>` : ''}
-          <div class="kv"><span>HQ</span><b>${f.hq != null ? esc(g.districts[f.hq].name) + ' [' + sector(g.districts[f.hq]) + ']' : '<span class="neg">none</span>'}</b></div>
-          <p class="small"><span class="tag">ABILITY</span> ${esc(F.ability)}</p>
-          <p class="small"><span class="tag bad">WEAKNESS</span> ${esc(F.weakness)}</p>
+          <div class="fp-body">
+            <p class="fp-desc" title="${esc(F.identity)}">${esc(F.identity)}</p>
+            <div class="fp-stats">
+              ${stat('factions', 'Districts', L.districts, 'Districts you control')}
+              ${stat('star', 'Rank', `#${rank}`, `Position ${rank} of ${st.length} in the standings (${me.score} points)`)}
+              ${stat('influence', 'Influence', (me.influence / 100).toFixed(1), 'Total influence across the city, in "full districts" (sum of all your influence ÷ 100)')}
+              ${stat('diplomacy', 'Reputation', `<span class="${repCls}">${repTxt}</span>${pacts ? ` <span class="dim small">· ${pacts} pact${pacts > 1 ? 's' : ''}</span>` : ''}`, `Average relations with rival factions: ${sgn(avgRel)}`, true)}
+              ${best ? stat('victory', 'Closest win', `<button class="linkbtn" data-screen="victory">${Math.floor(vp[best].pct * 100)}%</button>`, `${ND.VICTORY_INFO[best].name}: ${vp[best].value}/${vp[best].need}. Click for all victory conditions.`) : ''}
+              ${stat('crown', 'HQ', f.hq != null ? `<button class="linkbtn" data-cmd="goto" data-arg="${f.hq}">${sector(g.districts[f.hq])}</button>` : '<span class="neg">none</span>', f.hq != null ? `Headquarters: ${g.districts[f.hq].name}. Click to show it.` : 'You have no headquarters', true)}
+            </div>
+            <div class="trait good">${ND.icon('check')}<div><b>Special ability</b>${esc(F.ability)}</div></div>
+            <div class="trait bad">${ND.icon('warn')}<div><b>Weakness</b>${esc(F.weakness)}</div></div>
+          </div>
         </section>
         <section class="panel">
-          <h3>Treasury forecast <span class="dim small">next turn</span></h3>
+          <h3>${ND.icon('economy')}Treasury forecast <span class="small">next turn</span></h3>
           <table class="ledger">
-            <tr><th></th>${ND.RES.map((r) => `<th class="c-${r}">${ND.RES_SHORT[r]}</th>`).join('')}</tr>
+            <tr><th></th>${ND.RES.map((r) => `<th class="c-${r}" title="${ND.RES_LABEL[r]}">${ND.RES_SHORT[r]}</th>`).join('')}</tr>
             <tr><td>Income</td>${ND.RES.map((r) => `<td>${L.income[r]}</td>`).join('')}</tr>
             <tr><td>Districts</td>${ND.RES.map((r) => `<td class="neg">${L.distUpkeep[r] ? '−' + L.distUpkeep[r] : 0}</td>`).join('')}</tr>
             <tr><td>Payroll</td>${ND.RES.map((r) => `<td class="neg">${L.payroll[r] ? '−' + L.payroll[r] : 0}</td>`).join('')}</tr>
             <tr class="net"><td>Net</td>${ND.RES.map((r) => `<td class="${L.net[r] < 0 ? 'neg' : 'pos'}">${sgn(L.net[r])}</td>`).join('')}</tr>
           </table>
-          ${L.facilities ? `<div class="small dim">Income includes ${L.facilities} held facilit${L.facilities === 1 ? 'y' : 'ies'}.</div>` : ''}
+          ${L.facilities ? `<div class="small dim">Includes ${L.facilities} held facilit${L.facilities === 1 ? 'y' : 'ies'}.</div>` : ''}
           ${L.skim ? `<div class="small dim">Includes ${L.skim} CR skimmed from ${L.skimDistricts} district(s) where you hold ≥${ND.RULES.skimMin}% without control.</div>` : ''}
-          ${ND.RES.some((r) => f.res[r] + L.net[r] < 0) ? '<div class="warn small">Shortfall ahead: unpaid upkeep causes unrest (−5% influence in all your districts); unpaid credits also make your priciest unit desert.</div>' : ''}
+          ${ND.RES.some((r) => f.res[r] + L.net[r] < 0) ? `<div class="d-status st-warn small">${ND.icon('warn')}<span>Shortfall ahead: unpaid upkeep causes unrest (−5% influence everywhere); unpaid credits make your priciest unit desert.</span></div>` : ''}
           <div class="market">
-            <div class="small dim">Black market · lots of ${ND.Market.LOT}${ND.Market.bonus(g, p) ? ` · +${Math.round(ND.Market.bonus(g, p) * 100)}% from black market districts` : ''}</div>
+            <div class="small dim" title="Trade surplus resources for credits, or buy what you lack. Each Black Market district you control improves rates by 5% (max 25%).">Black market · lots of ${ND.Market.LOT}${ND.Market.bonus(g, p) ? ` · +${Math.round(ND.Market.bonus(g, p) * 100)}% rates` : ''}</div>
             ${ND.Market.goods.map((r) => `<div class="mrow"><span class="c-${r}">${ND.RES_SHORT[r]}</span>
-              <button class="btn xs" data-cmd="sell" data-arg="${r}" ${f.res[r] >= ND.Market.LOT && !g.over ? '' : 'disabled'}>Sell → ${ND.Market.sellPrice(g, p, r)} CR</button>
-              <button class="btn xs" data-cmd="buy-res" data-arg="${r}" ${f.res.credits >= ND.Market.buyPrice(g, p, r) && !g.over ? '' : 'disabled'}>Buy ← ${ND.Market.buyPrice(g, p, r)} CR</button></div>`).join('')}
+              <button class="btn xs" data-cmd="sell" data-arg="${r}" ${f.res[r] >= ND.Market.LOT && !g.over ? '' : 'disabled'} title="Sell ${ND.Market.LOT} ${ND.RES_LABEL[r]}">Sell → ${ND.Market.sellPrice(g, p, r)} CR</button>
+              <button class="btn xs" data-cmd="buy-res" data-arg="${r}" ${f.res.credits >= ND.Market.buyPrice(g, p, r) && !g.over ? '' : 'disabled'} title="Buy ${ND.Market.LOT} ${ND.RES_LABEL[r]}">Buy ← ${ND.Market.buyPrice(g, p, r)} CR</button></div>`).join('')}
           </div>
         </section>
         <section class="panel">
-          <h3>Standings</h3>
-          <ol class="standings">${st.map((s) => `
-            <li class="${s.alive ? '' : 'dead'} ${s.fid === p ? 'me' : ''}">
-              <i class="sw" style="background:${ND.FDEF[s.fid].color}"></i>
+          <h3>${ND.icon('star')}Faction rankings</h3>
+          <ol class="standings">${st.map((s, i) => `
+            <li class="${s.alive ? '' : 'dead'} ${s.fid === p ? 'me' : ''}" title="${esc(ND.FDEF[s.fid].name)}: ${s.alive ? `${s.districts} districts, ${s.units} units, score ${s.score}` : 'eliminated'}">
+              <span class="rk">${i + 1}</span><i class="sw" style="background:${ND.FDEF[s.fid].color}"></i>
               <span class="nm">${esc(ND.FDEF[s.fid].name)}</span>
-              <span class="dim">${s.alive ? s.districts + ' dist' : 'ELIMINATED'}</span>
-              <b>${s.score}</b>
+              <span class="dim small">${s.alive ? s.districts + ' dist' : 'out'}</span><b>${s.score}</b>
             </li>`).join('')}
           </ol>
         </section>
         <section class="panel">
-          <h3>Map overlay</h3>
-          <div class="modes">${Object.entries(ND.MAP_MODES).map(([k, v]) => `<button class="btn sm ${this.map.mode === k ? 'on' : ''}" data-mode="${k}">${v}</button>`).join('')}</div>
+          <h3>${ND.icon('intelnav')}Map overlay</h3>
+          <div class="modes">${Object.entries(ND.MAP_MODES).map(([k, v]) => `<button class="btn sm ${this.map.mode === k ? 'on' : ''}" data-mode="${k}" title="${esc(ND.MAP_MODE_HELP[k])}">${v}</button>`).join('')}</div>
           <div class="small dim legend">
-            ◆ HQ &nbsp; <span class="neg">◤</span> contested &nbsp; <span style="color:${F.color}">┅</span> in your reach &nbsp; <span class="c-credits">■</span> dev level
+            <span title="Faction headquarters">${ND.icon('crown')}HQ</span>
+            <span title="Two or more factions hold 20%+ influence"><i class="lg-sw" style="background:var(--danger)"></i>Contested</span>
+            <span title="Districts you can operate in"><i class="lg-sw" style="border:1.5px dashed ${F.color}"></i>In reach</span>
+            <span title="Facility markers (top-right), coloured by holder"><i class="lg-sw" style="background:var(--text2)"></i>Facilities</span>
+            <span title="Development level (gold diamonds)"><i class="lg-sw" style="background:var(--credits);transform:rotate(45deg) scale(.8)"></i>Development</span>
           </div>
         </section>`;
       ND.drawPortrait($('#portrait'), p);
@@ -266,56 +302,68 @@
       const ranked = ND.Inf.ranked(d);
       const neutral = ND.Inf.neutral(d);
       const cand = ND.Inf.captureCandidate(d);
-      let status;
-      if (d.owner && cand && cand !== d.owner) status = `<span class="warn">${esc(ND.FDEF[cand].name)} will seize it at turn end</span>`;
-      else if (d.owner && ND.Inf.get(d, d.owner) < ND.RULES.holdMin) status = '<span class="warn">Owner below 25% — control will collapse at turn end</span>';
-      else if (!d.owner && cand) status = `<span class="warn">${esc(ND.FDEF[cand].name)} will take control at turn end</span>`;
-      else if (ND.Inf.contested(d)) status = '<span class="neg">Contested</span>';
-      else status = d.owner ? 'Controlled' : 'Unaligned';
+      let status, stCls = '', stIcon = 'help';
+      if (d.owner && cand && cand !== d.owner) { status = `${esc(ND.FDEF[cand].name)} will seize it at turn end`; stCls = 'st-warn'; stIcon = 'warn'; }
+      else if (d.owner && ND.Inf.get(d, d.owner) < ND.RULES.holdMin) { status = `Owner below ${ND.RULES.holdMin}% — control will collapse at turn end`; stCls = 'st-warn'; stIcon = 'warn'; }
+      else if (!d.owner && cand) { status = `${esc(ND.FDEF[cand].name)} will take control at turn end`; stCls = cand === p ? 'st-ok' : 'st-warn'; stIcon = cand === p ? 'check' : 'warn'; }
+      else if (ND.Inf.contested(d)) { status = 'Contested — several factions hold 20%+'; stCls = 'st-danger'; stIcon = 'battles'; }
+      else if (d.owner === p) { status = 'Under your control'; stCls = 'st-ok'; stIcon = 'check'; }
+      else status = d.owner ? `Controlled by ${esc(ND.FDEF[d.owner].name)}` : 'Unaligned — nobody controls it';
       const ownerYield = d.owner ? ND.Econ.yieldFor(g, d.owner, d) : null;
       const baseY = ND.RES.filter((r) => T.yields[r]).map((r) => `<span class="c-${r}">${Math.round(T.yields[r] * ND.RULES.devMult[d.dev - 1])} ${ND.RES_SHORT[r]}</span>`).join(' ');
       const myInf = ND.Inf.get(d, p);
       let mine = '';
       if (d.owner === p) {
         const y = ND.Econ.yieldFor(g, p, d), u = ND.Econ.upkeepFor(g, p, d);
-        mine = `Yields you ${costHtml(y)}; upkeep ${costHtml(u)}`;
+        mine = `Yields you ${costHtml(y)} · upkeep ${costHtml(u)}`;
       } else if (myInf >= ND.RULES.skimMin) mine = `You skim <span class="c-credits">${ND.Econ.skimFor(d)} CR</span>/turn here.`;
       else if (ND.World.reachable(g, p, d)) mine = 'Within your reach — you can run operations here.';
       else mine = '<span class="dim">Out of reach — you need a bordering district.</span>';
-
+      const oc = d.owner ? ND.FDEF[d.owner].color : '#3a4f68';
+      const secTip = `Security ${d.security} (base ${d.baseSec}). Higher security weakens influence gains and injures canvassers. It drifts back toward its base each turn.`;
+      const facTip = `Facilities are held separately from district control. Seize them with units (needs 25% influence here). Each pays its holder ${Object.entries(ND.FAC_YIELD[d.type] || {}).map(([r, v]) => v + ' ' + ND.RES_SHORT[r]).join(' + ')} per turn and +1% influence here.`;
+      const inflTip = `Control needs ≥${ND.RULES.captureMin}% and a ${ND.RULES.captureMargin}-point lead over the runner-up. Owners keep control while ≥${ND.RULES.holdMin}%. Changes resolve at end of turn.`;
       $('#right').innerHTML = `
-        <section class="panel district">
-          <div class="d-head">
-            <span id="d-glyph"></span>
+        <section class="panel district" style="--oc:${oc}">
+          <div class="d-hero"><canvas id="d-hero-cv"></canvas>
+            <span class="d-badge">${sector(d)}</span>
+            ${d.hq ? `<span class="d-hq" style="--hc:${ND.FDEF[d.hq].color}">${ND.icon('crown')}HQ</span>` : ''}
+          </div>
+          <div class="d-body">
             <div>
               <div class="d-name">${esc(d.name)}</div>
-              <div class="dim small">Sector ${sector(d)} · ${esc(T.label)}${d.hq ? ' · <b style="color:' + ND.FDEF[d.hq].color + '">HEADQUARTERS</b>' : ''}</div>
+              <div class="d-sub">${esc(T.label)}${d.hq ? ` · headquarters of ${esc(ND.FDEF[d.hq].name)}` : ''}</div>
             </div>
+            <div class="kv"><span>Controller</span><span>${chip(d.owner)}${d.owner && d.owner !== p && ND.Diplo.pact(g, p, d.owner) ? ' <span class="tag" title="Non-aggression pact in force">PACT</span>' : ''}</span></div>
+            <div class="d-status ${stCls}">${ND.icon(stIcon)}<span>${status}</span></div>
+            <div class="d-grid">
+              <div class="tile" title="Residents (thousands)"><div class="tile-k">${ND.icon('population')}Population</div><div class="tile-v">${d.pop}k</div></div>
+              <div class="tile" title="Development level 1–3: level 2 yields ×1.5, level 3 ×2"><div class="tile-k">${ND.icon('dev')}Development</div><div class="tile-v"><span class="pips">${[1, 2, 3].map((i) => `<i class="${i <= d.dev ? 'on' : ''}"></i>`).join('')}</span><span class="small">Lv ${d.dev}</span></div></div>
+              <div class="tile wide" title="${esc(secTip)}"><div class="tile-k">${ND.icon('security')}Security</div>
+                <div class="tile-v">${d.security} <span class="dim small">base ${d.baseSec}</span></div>
+                <div class="meter"><i style="width:${d.security}%;background:linear-gradient(90deg,#f0b84a,#e45b68)"></i><span class="base" style="left:${d.baseSec}%"></span></div></div>
+              <div class="tile wide" title="Output per turn for the controller at the current development level"><div class="tile-k">${ND.icon('economy')}Economic value</div><div class="tile-v">${baseY || '—'}${d.hq ? ' <span class="dim small">+HQ bonus</span>' : ''}</div></div>
+              ${ownerYield && d.owner !== p ? `<div class="tile wide"><div class="tile-k">${ND.icon('credits')}Owner earns</div><div class="tile-v">${costHtml(ownerYield)}</div></div>` : ''}
+            </div>
+            ${d.disrupted > 0 ? `<div class="d-status st-danger">${ND.icon('sabotage')}<span>Sabotaged — no output for ${d.disrupted} more collection${d.disrupted > 1 ? 's' : ''}</span></div>` : ''}
+            ${g.factions[p].spied[d.id] >= g.turn ? `<div class="d-status st-ok">${ND.icon('spy')}<span>Your informants are active until turn ${g.factions[p].spied[d.id]}</span></div>` : ''}
+            <div class="mine">${mine}</div>
           </div>
-          <div class="kv"><span>Controller</span><span>${chip(d.owner)}${d.owner && d.owner !== p && ND.Diplo.pact(g, p, d.owner) ? ' <span class="tag">PACT</span>' : ''}</span></div>
-          <div class="kv"><span>Status</span><b>${status}</b></div>
-          <div class="kv"><span>Population</span><b>${d.pop}k</b></div>
-          <div class="kv"><span>Security</span><b>${bar(d.security, '#e0384a')} ${d.security} <span class="dim">(base ${d.baseSec})</span></b></div>
-          <div class="kv"><span>Development</span><b class="c-credits">${'●'.repeat(d.dev)}${'○'.repeat(3 - d.dev)}</b></div>
-          ${d.disrupted > 0 ? `<div class="kv"><span>Sabotaged</span><b class="neg">offline — no output for ${d.disrupted} more collection${d.disrupted > 1 ? 's' : ''}</b></div>` : ''}
-          ${g.factions[p].spied[d.id] >= g.turn ? `<div class="kv"><span>Informants</span><b class="pos">active until turn ${g.factions[p].spied[d.id]}</b></div>` : ''}
-          <div class="kv"><span>Economic value</span><b>${baseY || '—'}${d.hq ? ' <span class="dim">+HQ</span>' : ''}</b></div>
-          ${ownerYield && d.owner !== p ? `<div class="kv"><span>Owner earns</span><b>${costHtml(ownerYield)}</b></div>` : ''}
-          <div class="mine small">${mine}</div>
         </section>
         <section class="panel">
-          <h3>Facilities <span class="dim small">yield ${costHtml(ND.FAC_YIELD[d.type] || {})} each to holder</span></h3>
-          ${d.facilities.map((fc) => `<div class="kv"><span class="facs">${esc(fc.name)}</span>${fc.owner ? chip(fc.owner) : '<span class="chip neutral">Unclaimed</span>'}</div>`).join('')}
-          <p class="small dim">Facilities are held separately from district control. Seize them with units (needs 25% influence here). Each gives its holder +1% influence per turn here.</p>
+          <h3>${ND.icon('facility')}Facilities <span class="help-ico" title="${esc(facTip)}">${ND.icon('help')}</span></h3>
+          ${d.facilities.map((fc) => `<div class="fac-row"><span class="facs">${ND.icon('facility')}${esc(fc.name)}</span>${fc.owner ? chip(fc.owner) : '<span class="chip neutral">Unclaimed</span>'}</div>`).join('')}
         </section>
         ${this.unitsHereHtml(d)}
         <section class="panel">
-          <h3>Influence</h3>
-          ${ranked.map(([fid, v]) => `<div class="infl"><span style="color:${ND.FDEF[fid].color}">${esc(ND.FDEF[fid].name)}</span>${bar(v, ND.FDEF[fid].color)}<b>${v}%</b></div>`).join('')}
-          <div class="infl"><span class="dim">Unaligned</span>${bar(neutral, '#3a4554')}<b>${neutral}%</b></div>
-          <p class="small dim">Control needs ≥${ND.RULES.captureMin}% and a ${ND.RULES.captureMargin}-point lead. Owners keep control while ≥${ND.RULES.holdMin}%. Changes resolve at end of turn.</p>
+          <h3>${ND.icon('influence')}Influence <span class="help-ico" title="${esc(inflTip)}">${ND.icon('help')}</span></h3>
+          ${ranked.map(([fid, v]) => `<div class="infl ${fid === p ? 'me' : ''}"><span style="color:${ND.FDEF[fid].color}">${esc(ND.FDEF[fid].name)}</span>${bar(v, ND.FDEF[fid].color)}<b>${v}%</b></div>`).join('')}
+          <div class="infl"><span class="dim">Unaligned</span>${bar(neutral, '#4a5d75')}<b>${neutral}%</b></div>
+          <p class="small dim">Control needs ≥${ND.RULES.captureMin}% and a ${ND.RULES.captureMargin}-point lead. Owners keep control while ≥${ND.RULES.holdMin}%.</p>
         </section>`;
-      $('#d-glyph').appendChild(ND.glyphCanvas(d.type, d.owner ? ND.FDEF[d.owner].color : '#7d8ca0', 4));
+      const cv = $('#d-hero-cv'), dpr = window.devicePixelRatio || 1;
+      cv.width = Math.max(1, cv.clientWidth * dpr); cv.height = Math.max(1, cv.clientHeight * dpr);
+      ND.drawDistrictHero(cv, d, d.owner ? ND.FDEF[d.owner].color : '#8fa3ba');
       this.paintPortraits($('#right'));
     },
 
@@ -332,10 +380,10 @@
       const d = this.g.districts[u.loc];
       if (t.kind === 'seize' || t.kind === 'sabotage') {
         const fac = d.facilities[t.fac];
-        return { icon: ORDER_ICON[t.kind], name: `${t.kind === 'seize' ? 'Seize' : 'Sabotage'} ${fac ? fac.name : ''}`, info: t.info ? t.info.replace(/^[^:]*: /, '') + ' success' : '' };
+        return { icon: ND.icon(ORDER_ICON[t.kind]), name: `${t.kind === 'seize' ? 'Seize' : 'Sabotage'} ${fac ? fac.name : ''}`, info: t.info ? t.info.replace(/^[^:]*: /, '') + ' success' : '' };
       }
-      if (t.kind === 'attack') return { icon: ORDER_ICON.attack, name: `Attack ${ND.FDEF[t.target].short}`, info: t.info ? t.info.replace(/^[A-Z]{3} — /, '') : '' };
-      return { icon: ORDER_ICON[t.kind], name: ND.TASKS[t.kind], info: t.info || '' };
+      if (t.kind === 'attack') return { icon: ND.icon(ORDER_ICON.attack), name: `Attack ${ND.FDEF[t.target].short}`, info: t.info ? t.info.replace(/^[A-Z]{3} — /, '') : '' };
+      return { icon: ND.icon(ORDER_ICON[t.kind]), name: ND.TASKS[t.kind], info: t.info || '' };
     },
 
     // Grid of order buttons: everyday orders first, then the ones aimed at something in this district.
@@ -371,20 +419,26 @@
       const v = this.orderView(u, cur);
       const idle = !u.injured && u.task.kind === 'rest';
       const moveWhy = u.injured ? 'Injured units cannot move' : u.moved ? 'Already moved this turn' : 'Move this unit (then click a green district)';
+      const cond = u.injured ? `<span class="u-cond neg" title="Injured units rest until healed">Injured · ${u.injured} turn${u.injured > 1 ? 's' : ''}</span>`
+        : u.moved ? '<span class="u-cond dim" title="Already moved this turn">Moved</span>' : '<span class="u-cond pos">Ready</span>';
+      const eq = T.slots.map((slot, i) => (u.equip[i]
+        ? `<span class="eq" title="${esc(slot)}: ${esc(ND.ITEMS[u.equip[i]].label)}">${esc(ND.ITEMS[u.equip[i]].label)}</span>`
+        : `<span class="eq empty" title="Empty ${esc(slot)} slot — equip from the unit page">${esc(slot)}</span>`)).join('');
       return `<div class="unit ${u.injured ? 'hurt' : ''} ${open ? 'open' : ''}">
         <div class="u-top">
-          <canvas data-uport="${u.id}" width="40" height="40"></canvas>
+          <canvas data-uport="${u.id}" width="48" height="48"></canvas>
           <div class="u-main">
-            <div class="u-name"><button class="linkbtn" data-cmd="unit" data-arg="${u.id}" title="Equipment, stats and details">${esc(u.name)}</button> <span class="dim">Lv${u.level}</span></div>
-            <div class="small dim">${esc(T.label)} · ${unitStatus(u)}${compact ? '' : ` · ${esc(g.districts[u.loc].name)} [${sector(g.districts[u.loc])}]`}</div>
-            <div class="stats small">${statLine(s)}</div>
+            <div class="u-name"><button class="linkbtn" data-cmd="unit" data-arg="${u.id}" title="Open the unit page: equipment, stats, details">${esc(u.name)}</button> <span class="dim">Lv${u.level}</span></div>
+            <div class="u-cls">${esc(T.label)} ${cond}${compact ? '' : `<span class="dim">· ${esc(g.districts[u.loc].name)} ${sector(g.districts[u.loc])}</span>`}</div>
+            <div class="stats">${statLine(s)}</div>
+            <div class="u-eq">${eq}</div>
           </div>
         </div>
         <div class="u-bar">
           <button class="u-cur ${idle ? 'idle' : ''}" data-cmd="utoggle" data-arg="${u.id}" title="Change this unit's order">
             <span class="ord-i">${v.icon}</span><span><b>${esc(v.name)}</b>${idle ? ' — no orders!' : ''}</span><span class="u-chg">${open ? '▲' : 'Change ▼'}</span>
           </button>
-          <button class="btn sm u-move" data-cmd="move" data-arg="${u.id}" ${u.injured || u.moved ? 'disabled' : ''} title="${moveWhy}">➜ Move</button>
+          <button class="btn sm u-move" data-cmd="move" data-arg="${u.id}" ${u.injured || u.moved ? 'disabled' : ''} title="${moveWhy}">${ND.icon('move')}Move</button>
         </div>
         ${open && !u.injured ? this.orderButtons(u) : ''}
         ${u.injured ? `<div class="small neg">Injured — resting ${u.injured} more turn${u.injured > 1 ? 's' : ''}.</div>` : ''}
@@ -440,37 +494,40 @@
       if (this.sel < 0) { $('#actions').innerHTML = '<div class="dim">Select a district to see available operations.</div>'; return; }
       const d = g.districts[this.sel];
       const tab = this.actTab || 'district';
+      const max = ND.Actions.maxOps(g, p);
       const head = `
         <div class="act-head">
-          <div class="tabs"><button class="tab ${tab === 'district' ? 'on' : ''}" data-cmd="acttab" data-arg="district">District Ops</button><button class="tab ${tab === 'covert' ? 'on' : ''}" data-cmd="acttab" data-arg="covert">Covert Ops</button>
-            <span class="dim">— ${esc(d.name)} [${sector(d)}]</span></div>
-          <div class="dim small">${f.ops} op point${f.ops === 1 ? '' : 's'} left${tab === 'district' ? ' · keys 1–5' : ''}${f.leaderless ? ' · <span class="neg">LEADERLESS</span>' : ''}</div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+            <div class="tabs">
+              <button class="tab ${tab === 'district' ? 'on' : ''}" data-cmd="acttab" data-arg="district" title="Influence, security and development operations">${ND.icon('campaign')}District Ops</button>
+              <button class="tab ${tab === 'covert' ? 'on' : ''}" data-cmd="acttab" data-arg="covert" title="Espionage and special operations">${ND.icon('spy')}Covert Ops</button>
+            </div>
+            <span class="act-target">${esc(d.name)} <span class="dim small num">${sector(d)}</span></span>
+          </div>
+          <div class="act-meta">${ND.icon('ops')}<span>Operation points <b>${f.ops}</b>/${max}</span>${tab === 'district' ? '<span>· keys 1–5</span>' : ''}${f.leaderless ? '<span class="neg">· LEADERLESS</span>' : ''}</div>
         </div>`;
+      // One card: icon, name, short description, expected result, cost + OPS, and why it is unavailable.
+      const card = (attr, icon, label, shortDesc, expected, cost, ops, c, tip, hotkey) => `
+        <button class="act ${c.ok ? '' : 'off'}" ${attr} ${c.ok ? '' : 'disabled'} title="${esc(tip)}">
+          ${hotkey ? `<span class="act-k">${hotkey}</span>` : ''}
+          <span class="act-ico">${ND.icon(icon)}</span>
+          <span class="act-l">${esc(label)}</span>
+          <span class="act-d">${esc(shortDesc)}</span>
+          <span class="act-foot"><span class="act-e">${esc(expected)}</span><span class="act-c">${costHtml(cost)}<span class="opc">· ${ops} OP</span></span></span>
+          ${c.ok ? '' : `<span class="act-r">${ND.icon('warn')}<span>${esc(c.reason)}</span></span>`}
+        </button>`;
       if (tab === 'covert') {
         $('#actions').innerHTML = head + `<div class="act-row covert">${ND.Espionage.keys.map((k) => {
-          const op = ND.Espionage.OPS[k], c = ND.Espionage.check(g, p, k, d);
-          const ch = ND.Espionage.chance(g, p, k, d);
+          const op = ND.Espionage.OPS[k], c = ND.Espionage.check(g, p, k, d), ch = ND.Espionage.chance(g, p, k, d);
           const tip = `${op.desc}\n\nSuccess ${ch.pct}%: ${ch.parts.map((x) => `${x[0]} ${sgn(x[1])}`).join(', ')}`;
-          return `<button class="act ${c.ok ? '' : 'off'}" data-cmd="covert" data-arg="${k}" ${c.ok ? '' : 'disabled'} title="${esc(tip)}">
-            <span class="act-l">${esc(op.label)}</span>
-            <span class="act-e">${ch.pct}% success</span>
-            <span class="act-c">${costHtml(c.cost)} <span class="dim">· ${op.ops} OP</span></span>
-            ${c.ok ? '' : `<span class="act-r">${esc(c.reason)}</span>`}
-          </button>`;
+          return card(`data-cmd="covert" data-arg="${k}"`, COVERT_ICON[k], op.label, COVERT_SHORT[k], `${ch.pct}% success`, c.cost, op.ops, c, tip);
         }).join('')}</div>`;
         return;
       }
-      $('#actions').innerHTML = head + `
-        <div class="act-row">${ND.Actions.keys.map((k) => {
-          const def = ND.Actions.defs[k], c = ND.Actions.check(g, p, k, d);
-          return `<button class="act ${c.ok ? '' : 'off'}" data-act="${k}" ${c.ok ? '' : 'disabled'} title="${esc(def.desc)}">
-            <span class="act-k">${def.hotkey}</span>
-            <span class="act-l">${esc(def.label)}</span>
-            <span class="act-e">${esc(def.preview(g, p, d))}</span>
-            <span class="act-c">${costHtml(c.cost)} <span class="dim">· 1 OP</span></span>
-            ${c.ok ? '' : `<span class="act-r">${esc(c.reason)}</span>`}
-          </button>`;
-        }).join('')}</div>`;
+      $('#actions').innerHTML = head + `<div class="act-row">${ND.Actions.keys.map((k) => {
+        const def = ND.Actions.defs[k], c = ND.Actions.check(g, p, k, d);
+        return card(`data-act="${k}"`, k, def.label, ACTION_SHORT[k], def.preview(g, p, d), c.cost, 1, c, def.desc, def.hotkey);
+      }).join('')}</div>`;
     },
 
     act(key) {
@@ -483,26 +540,45 @@
 
     endTurn() {
       const g = this.g;
-      if (g.over) return;
+      if (g.over || this.busy) return;
+      this.busy = true;
       this.moving = null;
-      const report = ND.Turn.end(g);
-      // The tutorial game never overwrites the real autosave.
-      if (g.settings.autosave && !g.tutorial) ND.Save.save(g, 'auto');
-      this.renderAll();
-      this.flash(g.over ? (g.over.result === 'victory' ? 'VICTORY' : 'DEFEAT') : `TURN ${g.turn}`);
-      if (g.over) this.showGameOver();
-      else this.showReport(report);
+      $('#btn-end').disabled = true;
+      const before = Object.fromEntries(ND.Turn.standings(g).map((s) => [s.fid, s.districts]));
+      // Show "rivals are acting" first, then run the real turn on the next tick so the overlay can paint.
+      const busy = $('#busy');
+      busy.innerHTML = `<div class="busy-card"><span class="busy-dots">${g.order.filter((f) => g.factions[f].alive && f !== g.player)
+        .map((f) => `<i style="--fc:${ND.FDEF[f].color}"></i>`).join('')}</span>Rival factions are making their moves…</div>`;
+      busy.classList.remove('hidden');
+      setTimeout(() => {
+        try {
+          const report = ND.Turn.end(g);
+          // The tutorial game never overwrites the real autosave.
+          if (g.settings.autosave && !g.tutorial) ND.Save.save(g, 'auto');
+          this.renderAll();
+          const after = ND.Turn.standings(g);
+          const deltas = after.map((s) => ({ fid: s.fid, d: s.districts - (before[s.fid] || 0), alive: s.alive })).filter((x) => x.d !== 0);
+          this.flash(g.over ? (g.over.result === 'victory' ? 'VICTORY' : 'DEFEAT') : `TURN ${g.turn}`, deltas, g.over && g.over.result);
+          if (g.over) this.showGameOver();
+          else this.showReport(report);
+        } finally {
+          busy.classList.add('hidden');
+          this.busy = false;
+          this.renderTop();
+        }
+      }, 40);
     },
 
-    // Brief neon title card between turns (purely visual; never blocks input).
-    flash(text) {
+    // Title card between turns, with each faction's real change in territory (purely visual; never blocks input).
+    flash(text, deltas = [], result) {
       const el = $('#turnflash');
-      el.textContent = text;
+      el.innerHTML = `<div class="tf-title ${result || ''}">${esc(text)}</div>${deltas.length ? `<div class="tf-rows">${deltas.map((x) => `
+        <span class="tf-f" style="--fc:${ND.FDEF[x.fid].color}"><i></i>${esc(ND.FDEF[x.fid].name)} <b class="${x.d > 0 ? 'pos' : 'neg'}">${x.d > 0 ? '+' : ''}${x.d}</b> <span class="dim small">district${Math.abs(x.d) > 1 ? 's' : ''}</span></span>`).join('')}</div>` : ''}`;
       el.classList.remove('hidden', 'go');
       void el.offsetWidth; // restart the animation
       el.classList.add('go');
       clearTimeout(this.flashTimer);
-      this.flashTimer = setTimeout(() => el.classList.add('hidden'), 1300);
+      this.flashTimer = setTimeout(() => el.classList.add('hidden'), 2000);
     },
 
     // ---------- tooltip / toast ----------
@@ -674,7 +750,7 @@
           <div>
             <h3>Orders</h3>
             <div class="u-bar"><span class="small">Current: <b>${esc(ND.Units.taskLabel(g, u))}</b></span>
-              <button class="btn sm u-move" data-cmd="move" data-arg="${u.id}" ${u.injured || u.moved ? 'disabled' : ''}>➜ Move</button></div>
+              <button class="btn sm u-move" data-cmd="move" data-arg="${u.id}" ${u.injured || u.moved ? 'disabled' : ''}>${ND.icon('move')}Move</button></div>
             ${u.injured ? `<p class="small neg">Injured — resting ${u.injured} more turn${u.injured > 1 ? 's' : ''}.</p>` : this.orderButtons(u)}
             <p class="small dim">Canvass raises your influence here · Guard (your districts) blunts rival campaigns, intercepts intruders and gets +2 DEF in battle · Attack fights a rival's units here (odds shown are an estimate) · Seize/Sabotage target facilities · Train buys experience.</p>
             <h3>Equipment</h3>
