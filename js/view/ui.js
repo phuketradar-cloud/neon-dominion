@@ -1016,7 +1016,7 @@
         return;
       }
       if (!$('#modal').classList.contains('hidden')) return;
-      if (e.target.matches('input,textarea,select')) return;
+      if (e.target.matches && e.target.matches('input,textarea,select')) return;
       const d = this.g.districts[this.sel];
       const mv = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
       if (mv && d) {
