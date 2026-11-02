@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neon Dominion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Main menu -->
+  <div id="start" class="hidden">
+    <div class="start-inner">
+      <h1 class="logo">NEON<span>DOMINION</span></h1>
+      <p class="tagline">The megacity is rotting. Six crime empires want what's left. Choose yours.</p>
+      <div class="tut-banner"><span><b>เล่นครั้งแรก?</b> เริ่มบทเรียนแบบลงมือทำ ทีละขั้น (ภาษาไทย ประมาณ 10 นาที)</span><button id="btn-tutorial" class="btn primary">📘 เริ่มบทเรียน</button></div>
+      <div id="pick"></div>
+      <div id="setup" class="setup"></div>
+      <div class="start-bar">
+        <label>City seed <input id="seed" type="number"></label>
+        <button id="btn-new" class="btn primary">Seize the city ▸</button>
+        <span id="setup-err" class="neg small"></span>
+        <span class="sep"></span>
+        <button id="btn-continue" class="btn">Continue</button>
+        <span id="continue-info" class="dim small"></span>
+        <span id="load-slots"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game -->
+  <div id="game" class="hidden">
+    <header id="topbar">
+      <div class="logo small-logo">NEON<span>DOMINION</span></div>
+      <div id="resources"></div>
+      <div id="turn" class="pill"></div>
+      <div id="ops" class="pill"></div>
+      <div id="unitpill" class="pill"></div>
+      <button id="rdpill" class="pill" data-screen="research"></button>
+      <nav>
+        <button class="btn sm" data-screen="report">Briefing</button>
+        <button class="btn sm" data-screen="units">Units</button>
+        <button class="btn sm" data-screen="recruit">Recruit</button>
+        <button class="btn sm" data-screen="armory">Armory</button>
+        <button class="btn sm" data-screen="battles">Battles</button>
+        <button class="btn sm" data-screen="diplomacy">Diplomacy</button>
+        <button class="btn sm" data-screen="factions">Factions</button>
+        <button class="btn sm" data-screen="intel">Intel</button>
+        <button class="btn sm" data-screen="victory">Victory</button>
+        <button class="btn sm" data-screen="help">Manual</button>
+        <button class="btn sm" data-screen="settings">Settings</button>
+      </nav>
+      <button id="btn-end" class="btn end" data-cmd="end">END TURN ▸</button>
+    </header>
+    <aside id="left"></aside>
+    <main id="center">
+      <canvas id="map"></canvas>
+      <div id="tooltip" class="hidden"></div>
+      <div id="move-banner" class="hidden"></div>
+    </main>
+    <aside id="right"></aside>
+    <footer id="actions"></footer>
+  </div>
+
+  <div id="modal" class="hidden">
+    <div class="modal-box">
+      <div class="modal-head"><h2 id="modal-title"></h2><button class="btn sm" data-cmd="close">✕</button></div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+  <div id="toasts"></div>
+  <div id="turnflash" class="hidden"></div>
+
+  <!-- Game logic (no DOM access) -->
+  <script src="js/core/rng.js"></script>
+  <script src="js/core/data.js"></script>
+  <script src="js/core/world.js"></script>
+  <script src="js/core/economy.js"></script>
+  <script src="js/core/actions.js"></script>
+  <script src="js/core/units.js"></script>
+  <script src="js/core/combat.js"></script>
+  <script src="js/core/tech.js"></script>
+  <script src="js/core/espionage.js"></script>
+  <script src="js/core/diplomacy.js"></script>
+  <script src="js/core/victory.js"></script>
+  <script src="js/core/market.js"></script>
+  <script src="js/core/ai.js"></script>
+  <script src="js/core/turn.js"></script>
+  <script src="js/core/save.js"></script>
+  <!-- Rendering / interface -->
+  <script src="js/view/art.js"></script>
+  <script src="js/view/mapview.js"></script>
+  <script src="js/view/ui.js"></script>
+  <script src="js/view/tutorial.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
