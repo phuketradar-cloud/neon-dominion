@@ -189,9 +189,37 @@
     ctx.restore();
   };
 
+  // Illustrated leader art (assets/factions/<fid>.webp, 4:5). fx/fy = face centre as a fraction of the image,
+  // so every crop (tall hero, square card, wide roster strip) keeps the face in frame.
+  const LEADER_ART = {
+    syndicate: { fx: 0.51, fy: 0.19 }, legion: { fx: 0.57, fy: 0.17 }, cult: { fx: 0.51, fy: 0.21 },
+    mutants: { fx: 0.57, fy: 0.15 }, shadow: { fx: 0.52, fy: 0.24 }, reapers: { fx: 0.57, fy: 0.15 },
+  };
+  const waiting = []; // canvases drawn with the vector fallback before their image finished loading
+  for (const fid in LEADER_ART) {
+    const img = new Image();
+    img.onload = () => { for (const [cv, f] of waiting.splice(0)) if (cv.isConnected) ND.drawPortrait(cv, f); };
+    img.src = `assets/factions/${fid}.webp`;
+    LEADER_ART[fid].img = img;
+  }
+  const drawLeaderArt = (canvas, art) => {
+    const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height, img = art.img;
+    const iw = img.naturalWidth, ih = img.naturalHeight, ca = W / H;
+    const zoom = ca > 1.3 ? 1.7 : ca > 0.9 ? 1.35 : 1; // small cards and strips zoom towards the face
+    let vw = ca > iw / ih ? iw : ih * ca, vh = vw / ca;
+    vw /= zoom; vh /= zoom;
+    const faceAt = ca > 1.3 ? 0.45 : ca > 0.9 ? 0.4 : 0.3; // where the face sits in the crop, from the top
+    const sx = Math.max(0, Math.min(iw - vw, art.fx * iw - vw / 2));
+    const sy = Math.max(0, Math.min(ih - vh, art.fy * ih - vh * faceAt));
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(img, sx, sy, vw, vh, 0, 0, W, H);
+  };
+
   ND.drawPortrait = (canvas, fid) => {
-    const F = ND.FDEF[fid];
+    const F = ND.FDEF[fid], art = LEADER_ART[fid];
+    if (art && art.img.complete && art.img.naturalWidth) return drawLeaderArt(canvas, art);
     ND.drawFigure(canvas, { seed: F.leader, fid, role: 'leader', accent: F.portrait.accent, skin: F.portrait.skin, hair: F.portrait.hair });
+    if (art) waiting.push([canvas, fid]);
   };
   ND.drawUnitPortrait = (canvas, u) => {
     ND.drawFigure(canvas, { seed: u.name, fid: u.fid, role: u.type, accent: ND.UNIT_TYPES[u.type].accent, skin: u.skin, hair: u.hair });
