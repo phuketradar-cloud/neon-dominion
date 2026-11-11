@@ -18,7 +18,7 @@
     setup: null,
 
     // Backdrop art per faction (assets/factions/bg-<fid>.webp). Factions not listed keep the plain gradient.
-    BACKDROPS: { syndicate: 'assets/factions/bg-syndicate.webp' },
+    BACKDROPS: { syndicate: 'assets/factions/bg-syndicate.webp', legion: 'assets/factions/bg-legion.jpg' },
     bgFid: null,
     backdrop(fid) {
       if (this.bgFid === fid) return;
