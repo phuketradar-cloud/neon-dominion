@@ -279,6 +279,35 @@
   ND.drawUnitPortrait = (canvas, u) => {
     ND.drawFigure(canvas, { seed: u.name, fid: u.fid, role: u.type, accent: ND.UNIT_TYPES[u.type].accent, skin: u.skin, hair: u.hair });
   };
+  // District illustrations (assets/districts/<type>.jpg), one per district type, shown in the district panel and the
+  // battle report banner. The vector street scene from art.js stays as the fallback while an image loads or is missing.
+  const DISTRICT_ART = {};
+  const districtArt = (type) => {
+    let a = DISTRICT_ART[type];
+    if (!a) {
+      a = DISTRICT_ART[type] = { img: new Image(), fx: 0.5, fy: 0.42, failed: false }; // landmarks sit near the centre
+      a.img.onload = redrawWaiting;
+      a.img.onerror = () => { a.failed = true; };
+      a.img.src = `assets/districts/${type}.jpg`;
+    }
+    return a;
+  };
+  const drawVectorHero = ND.drawDistrictHero;
+  ND.drawDistrictHero = (canvas, d, light) => {
+    const a = districtArt(d.type);
+    if (!ready(a.img)) {
+      drawVectorHero(canvas, d, light);
+      if (!a.failed) waiting.push([canvas, () => ND.drawDistrictHero(canvas, d, light)]);
+      return;
+    }
+    const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+    drawArt(ctx, W, H, a, [1, 1, 1]);
+    // the controller's colour rises from the street, so ownership still reads at a glance
+    const glow = ctx.createLinearGradient(0, H * 0.5, 0, H);
+    glow.addColorStop(0, 'rgba(0,0,0,0)'); glow.addColorStop(1, ND.hexA(light, 0.3));
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+  };
+
   // "Jax "Razor" Moreno" → { first, nick, last }
   ND.splitName = (name) => {
     const m = /^(.*?)\s*"(.+?)"\s*(.*)$/.exec(name);
