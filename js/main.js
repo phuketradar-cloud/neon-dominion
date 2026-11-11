@@ -17,8 +17,10 @@
     picked: ND.FACTIONS[0].id,
     setup: null,
 
-    // Backdrop art per faction (assets/factions/bg-<fid>.webp). Factions not listed keep the plain gradient.
-    BACKDROPS: { syndicate: 'assets/factions/bg-syndicate.webp', legion: 'assets/factions/bg-legion.jpg', mutants: 'assets/factions/bg-mutants.jpg', cult: 'assets/factions/bg-cult.jpg' },
+    // Backdrop art per faction (assets/factions/bg-<fid>.*). A faction left out falls back to the plain gradient.
+    BACKDROPS: { syndicate: 'assets/factions/bg-syndicate.webp', legion: 'assets/factions/bg-legion.jpg', mutants: 'assets/factions/bg-mutants.jpg', cult: 'assets/factions/bg-cult.jpg',
+      shadow: 'assets/factions/bg-shadow.jpg', reapers: 'assets/factions/bg-reapers.jpg',
+    },
     bgFid: null,
     backdrop(fid) {
       if (this.bgFid === fid) return;
