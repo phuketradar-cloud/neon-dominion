@@ -549,3 +549,16 @@ button.ti-press { margin-top: clamp(40px, 8vh, 90px); padding: 12px 28px; border
 .ti-credits dd { margin: 0; color: #e6edf6; }
 .ti-foot { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 clamp(28px, 5vw, 96px); color: #7f8da3; font: 600 13px var(--f-mono, monospace); }
 @media (prefers-reduced-motion: reduce) { #title .ti-bg, #title .ti-rain, .ti-neon, .ti-dom::before, .ti-dom::after, button.ti-press { animation: none; } }
+
+/* ---------- Faction backdrop (faction select + setup), see ND.Main.backdrop ---------- */
+#fsbg { position: fixed; inset: 0; display: none; pointer-events: none; background: transparent; }
+body:has(#start:not(.hidden)) #fsbg, body:has(#setupscr:not(.hidden)) #fsbg { display: block; }
+.fsbg-l { position: absolute; inset: 0; background: center left / cover no-repeat; opacity: 0; transform: scale(1.03); transition: opacity .7s ease, transform 8s ease-out; }
+.fsbg-l.on { opacity: 1; transform: scale(1); }
+/* keep the header, the info column and the roster readable over any art */
+.fsbg-shade { position: absolute; inset: 0;
+  background: linear-gradient(0deg, rgba(8, 11, 18, .96) 0%, rgba(8, 11, 18, .7) 18%, rgba(8, 11, 18, 0) 38%),
+    linear-gradient(180deg, rgba(8, 11, 18, .7) 0%, rgba(8, 11, 18, 0) 14%),
+    linear-gradient(90deg, rgba(8, 11, 18, .15) 0%, rgba(8, 11, 18, 0) 40%, rgba(8, 11, 18, .55) 62%, rgba(8, 11, 18, .7) 100%); }
+/* setup puts text over the middle of the art, so dim it more there */
+body:has(#setupscr:not(.hidden)) .fsbg-shade { background: linear-gradient(90deg, rgba(8, 11, 18, .35) 0%, rgba(8, 11, 18, .78) 30%, rgba(8, 11, 18, .82) 100%); }

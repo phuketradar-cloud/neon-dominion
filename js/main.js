@@ -17,6 +17,19 @@
     picked: ND.FACTIONS[0].id,
     setup: null,
 
+    // Backdrop art per faction (assets/factions/bg-<fid>.webp). Factions not listed keep the plain gradient.
+    BACKDROPS: { syndicate: 'assets/factions/bg-syndicate.webp' },
+    bgFid: null,
+    backdrop(fid) {
+      if (this.bgFid === fid) return;
+      this.bgFid = fid;
+      const [a, b] = document.querySelectorAll('#fsbg .fsbg-l'), next = a.classList.contains('on') ? b : a;
+      const url = this.BACKDROPS[fid];
+      next.style.backgroundImage = url ? `url("${url}")` : 'none';
+      next.classList.add('on');
+      (next === a ? b : a).classList.remove('on'); // the old layer fades out underneath
+    },
+
     // ---------- faction selection ----------
     showStart() {
       $('#setupscr').classList.add('hidden');
@@ -26,6 +39,7 @@
     },
     renderStart() {
       const F = ND.FDEF[this.picked], P = PITCH[this.picked], TH = ND.FACTION_THEME[this.picked];
+      this.backdrop(this.picked);
       $('#start').innerHTML = `
         <header class="menu-head">
           <div class="brand"><span class="brand-mark"></span><span class="brand-t">NEON <b>DOMINION</b></span></div>
@@ -69,6 +83,7 @@
       $('#start').classList.add('hidden');
       $('#title').classList.add('hidden');
       $('#setupscr').classList.remove('hidden');
+      this.backdrop(this.picked);
       this.renderSetup();
     },
     renderSetup() {
@@ -134,6 +149,7 @@
 
     init() {
       ND.UI.init();
+      for (const url of Object.values(this.BACKDROPS)) new Image().src = url; // ready before the first crossfade
       ND.Title.init();
       ND.Sound.init();
       document.addEventListener('click', (e) => {
