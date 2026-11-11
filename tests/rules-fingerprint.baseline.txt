@@ -1,0 +1,3 @@
+11:T61:syn31,rea18,cul16,mut13,leg12,sha5:730969216752
+22:T61:syn24,rea23,cul18,mut13,leg10,sha2:c8000b468a54
+33:T61:rea28,leg17,cul14,mut13,sha7,syn6:f956e77252bf

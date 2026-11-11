@@ -1,4 +1,4 @@
-// Usage: node tests/rules-fingerprint.js .   (run from the project folder)
+// Usage: node tests/rules-fingerprint.js . | diff - tests/rules-fingerprint.baseline.txt   (no output = rules unchanged)
 // Deterministic fingerprint of the rules: same seeds must give the same results before and after the UI redesign.
 const fs=require('fs'),vm=require('vm');const dir=process.argv[2];global.window=global;
 for(const f of ['rng','data','world','economy','actions','units','combat','tech','espionage','diplomacy','victory','market','ai','turn']) vm.runInThisContext(fs.readFileSync(dir+'/js/core/'+f+'.js','utf8'));
