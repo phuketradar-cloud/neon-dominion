@@ -102,5 +102,5 @@ Everything else — battle/victory/defeat themes, ambience and sound effects —
 API (`js/view/audio.js`). `js/view/sound.js` connects it to the game: music per screen (menu, faction select, city, battle,
 victory, defeat) with crossfades and a faction flavour, interface sounds, a city soundscape that follows the selected
 district type, and sounds for real gameplay results (played only when an action succeeds). Sound starts after the
-player's first click or key press. Volumes and on/off switches live in **Settings › Audio** and the speaker button
-(top bar and opening screen); they are saved in this browser. Recorded tracks can replace themes — see `assets/audio/README.md`.
+player's first key press on the title screen, and the music always plays. Volume sliders and the effects/ambience
+switches live in **Settings › Audio** (also on the title menu); they are saved in this browser. Recorded tracks can replace themes — see `assets/audio/README.md`.
