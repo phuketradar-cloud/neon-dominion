@@ -62,7 +62,7 @@
       }
       el.innerHTML = `<div class="ti-bg" aria-hidden="true"></div><div class="ti-rain" aria-hidden="true"></div><div class="ti-shade" aria-hidden="true"></div>
         <div class="ti-body">${body}</div>
-        <footer class="ti-foot"><span>${VERSION}</span></footer>`;
+        <footer class="ti-foot"><span>${VERSION}</span>${ND.I18N.switchHtml()}</footer>`;
     },
 
     panelHtml() {
@@ -75,7 +75,7 @@
             <button class="btn ${m ? 'primary' : ''} sm" data-title-load="${s}" ${m ? '' : 'disabled'}>Load</button></div>`;
         }).join('')}</div>`;
       }
-      if (this.panel === 'settings') return head('Settings') + ND.Sound.settingsHtml();
+      if (this.panel === 'settings') return head('Settings') + `<div class="lang-row"><b>Language · ภาษา</b>${ND.I18N.switchHtml()}</div>` + ND.Sound.settingsHtml();
       return head('Credits') + `<dl class="ti-credits">${CREDITS.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl>`;
     },
 
@@ -96,7 +96,7 @@
         if (ld) { const g = ND.Save.load(ld.dataset.titleLoad); if (g) { this.hide(); ND.UI.start(g); } return; }
         const b = e.target.closest('[data-title]');
         if (b && !b.disabled) { this.run(b.dataset.title); return; }
-        if (this.stage === 'press') this.run('enter');
+        if (this.stage === 'press' && !e.target.closest('[data-lang]')) this.run('enter');
       });
       document.addEventListener('keydown', (e) => {
         if (!this.isOpen() || e.target.matches('input, select, textarea')) return;

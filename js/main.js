@@ -152,6 +152,7 @@
     init() {
       ND.UI.init();
       for (const url of Object.values(this.BACKDROPS)) new Image().src = url; // ready before the first crossfade
+      ND.I18N.init();
       ND.Title.init();
       ND.Sound.init();
       document.addEventListener('click', (e) => {

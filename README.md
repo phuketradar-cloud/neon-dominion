@@ -104,3 +104,11 @@ victory, defeat) with crossfades and a faction flavour, interface sounds, a city
 district type, and sounds for real gameplay results (played only when an action succeeds). Sound starts after the
 player's first key press on the title screen, and the music always plays. Volume sliders and the effects/ambience
 switches live in **Settings › Audio** (also on the title menu); they are saved in this browser. Recorded tracks can replace themes — see `assets/audio/README.md`.
+
+## Language (English / ไทย)
+
+Switch with **EN | ไทย** on the title menu (bottom right), in its Settings panel, or in **Settings › Gameplay**; the choice is
+remembered. `js/view/i18n.js` translates what is on screen just before it is painted (exact phrases, phrases with
+numbers, and sentence patterns for logs and reports); `js/view/i18n-th.js` holds the Thai text. Proper names
+(factions, leaders, districts, facilities, characters) stay in English, and the rules keep their English text, so
+saves are identical in both languages. `tests/i18n-harvest.js` lists any text still untranslated.

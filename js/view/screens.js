@@ -573,6 +573,7 @@
         }).join('')}</div><p class="small dim">Saves live in this browser's local storage. Game seed: ${g.seed}.</p>`;
       } else if (st.tab === 'gameplay') {
         body = `<div class="card set-card">
+          <div class="lang-row"><b>Language · ภาษา</b>${ND.I18N.switchHtml()}</div>
           <label class="check big"><input type="checkbox" id="opt-autosave" ${g.settings.autosave ? 'checked' : ''} data-cmd="autosave"> Autosave at the end of every turn</label>
           <label class="check big"><input type="checkbox" id="opt-brief" ${g.settings.autoBriefing !== false ? 'checked' : ''} data-cmd="autobrief"> Open the briefing automatically at the start of each turn</label>
           <p class="small dim">Difficulty: ${ND.DIFFICULTY[g.difficulty].label}. Victory conditions are fixed once a game starts — see Objectives.</p></div>`;

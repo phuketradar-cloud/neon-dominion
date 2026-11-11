@@ -158,3 +158,11 @@ button.side-card:hover { box-shadow: var(--v4-inset), 0 0 0 1px var(--v4-edge-hi
   .rk-row { padding: 4px 6px; }
   .treasury-mini .tm-row { padding: 1px 2px; }
 }
+
+/* language switch (title menu, settings) */
+.lang-sw { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: rgba(6, 12, 22, .75); box-shadow: inset 0 0 0 1px rgba(98, 196, 255, .22); }
+.lang-b { border: 0; border-radius: 999px; padding: 5px 14px; background: transparent; color: #9fb2cc; font: 700 13px var(--f-ui); cursor: pointer; letter-spacing: .5px; }
+.lang-b:hover { color: #fff; }
+.lang-b.on { background: linear-gradient(180deg, #5fe3f3, #2bb8cc); color: #04161b; box-shadow: 0 0 12px rgba(66, 213, 232, .4); }
+.lang-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.ti-foot .lang-sw { margin-left: auto; margin-right: 0; }
