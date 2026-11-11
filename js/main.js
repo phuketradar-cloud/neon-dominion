@@ -30,7 +30,6 @@
         <header class="menu-head">
           <div class="brand"><span class="brand-mark"></span><span class="brand-t">NEON <b>DOMINION</b></span></div>
           <div class="menu-right">
-            <button class="btn audio-tg" data-audio-toggle data-label="1"></button>
             <button class="btn" id="btn-menu" title="Back to the main menu (Esc)">‹ Main menu</button>
           </div>
         </header>
@@ -53,7 +52,6 @@
             <span class="fsc-name">${ND.emblemSvg(x.id)}${esc(x.name)}</span>
           </button>`).join('')}</nav>`;
       ND.applyIcons($('#start'));
-      ND.Audio.renderToggles();
       this.paintArt();
     },
     paintArt() {

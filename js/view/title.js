@@ -62,8 +62,7 @@
       }
       el.innerHTML = `<div class="ti-bg" aria-hidden="true"></div><div class="ti-rain" aria-hidden="true"></div><div class="ti-shade" aria-hidden="true"></div>
         <div class="ti-body">${body}</div>
-        <footer class="ti-foot"><span>${VERSION}</span><button class="btn audio-tg" data-audio-toggle data-label="1"></button></footer>`;
-      ND.Audio.renderToggles();
+        <footer class="ti-foot"><span>${VERSION}</span></footer>`;
     },
 
     panelHtml() {
@@ -97,7 +96,7 @@
         if (ld) { const g = ND.Save.load(ld.dataset.titleLoad); if (g) { this.hide(); ND.UI.start(g); } return; }
         const b = e.target.closest('[data-title]');
         if (b && !b.disabled) { this.run(b.dataset.title); return; }
-        if (this.stage === 'press' && !e.target.closest('[data-audio-toggle]')) this.run('enter');
+        if (this.stage === 'press') this.run('enter');
       });
       document.addEventListener('keydown', (e) => {
         if (!this.isOpen() || e.target.matches('input, select, textarea')) return;

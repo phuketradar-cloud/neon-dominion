@@ -477,11 +477,7 @@ button.side-card { cursor: pointer; transition: box-shadow .15s; } button.side-c
 .ud-profile q { font: italic 600 14px/1.35 var(--f-ui); color: var(--accent, #42d5e8); }
 .ud-profile p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--text2); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; }
 
-/* Audio: speaker toggles and the Settings › Audio tab */
-.audio-tg[data-state="locked"] { color: var(--gold, #f2c15c); }
-.audio-tg[data-state="muted"] { color: var(--text2); opacity: .75; }
-.menu-right .audio-tg { display: inline-flex; align-items: center; gap: 6px; }
-.menu-right .audio-tg .ico { width: 18px; height: 18px; }
+/* Audio: the Settings › Audio tab */
 .aud-card { gap: 14px; }
 .aud-row { display: grid; grid-template-columns: minmax(170px, 220px) minmax(160px, 1fr) 52px; grid-template-rows: auto auto; column-gap: 14px; align-items: center; }
 .aud-row > span { grid-column: 1 / -1; }
@@ -552,6 +548,4 @@ button.ti-press { margin-top: clamp(40px, 8vh, 90px); padding: 12px 28px; border
 .ti-credits dt { color: #8fa0b8; font-weight: 600; }
 .ti-credits dd { margin: 0; color: #e6edf6; }
 .ti-foot { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 clamp(28px, 5vw, 96px); color: #7f8da3; font: 600 13px var(--f-mono, monospace); }
-.ti-foot .audio-tg { display: inline-flex; align-items: center; gap: 6px; }
-.ti-foot .audio-tg .ico { width: 18px; height: 18px; }
 @media (prefers-reduced-motion: reduce) { #title .ti-bg, #title .ti-rain, .ti-neon, .ti-dom::before, .ti-dom::after, button.ti-press { animation: none; } }

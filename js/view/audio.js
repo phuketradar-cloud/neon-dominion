@@ -73,6 +73,7 @@
     // ---------- setup ----------
     initialize() {
       try { Object.assign(this.prefs, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { /* defaults */ }
+      Object.assign(this.prefs, { muted: false, musicOn: true }); // music always plays (no on/off switch); volume sliders still apply
       const unlock = () => this.unlockAudio();
       window.addEventListener('pointerdown', unlock, true);
       window.addEventListener('keydown', unlock, true);
@@ -80,14 +81,12 @@
         if (!this.ctx) return;
         if (document.hidden) this.ctx.suspend(); else if (!this.prefs.muted) this.ctx.resume();
       });
-      this.renderToggles();
     },
     // Called from a real user gesture only; never tries to start audio by itself.
     unlockAudio() {
       if (this.ctx) { if (this.ctx.state === 'suspended' && !document.hidden) this.ctx.resume(); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
-      this.unlockedAt = performance.now();
       const c = (this.ctx = new AC());
       const lim = c.createDynamicsCompressor();
       lim.threshold.value = -8; lim.knee.value = 6; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.25;
@@ -107,7 +106,6 @@
       this.timer = setInterval(() => this.tick(), 25);
       if (this.wanted) { const w = this.wanted; this.wanted = null; this.playMusic(w.id, w.fid); }
       if (this.ambWanted) this.playAmbient();
-      this.renderToggles();
     },
     get running() { return !!this.ctx && this.ctx.state === 'running'; },
 
@@ -123,8 +121,7 @@
     },
     setPref(k, v) {
       this.prefs[k] = v;
-      this.save(); this.applyVolumes(); this.renderToggles();
-      if (k === 'musicOn' && v && this.ctx && !this.song && this.musicKey) { const [id, fid] = this.musicKey.split('|'); this.musicKey = null; this.playMusic(id, fid || null); }
+      this.save(); this.applyVolumes();
     },
     setMasterVolume(v) { this.setPref('master', v); },
     setMusicVolume(v) { this.setPref('music', v); },
@@ -132,19 +129,6 @@
     setAmbientVolume(v) { this.setPref('ambient', v); },
     mute() { this.setPref('muted', true); },
     unmute() { this.unlockAudio(); this.setPref('muted', false); if (this.ctx) this.ctx.resume(); },
-    toggleMute() {
-      if (this.ctx && performance.now() - this.unlockedAt < 600 && !this.prefs.muted) return; // this click just switched sound on
-      if (this.prefs.muted || !this.ctx) this.unmute(); else this.mute();
-    },
-    // Speaker buttons ([data-audio-toggle]) show: off until the first click, then on / muted.
-    renderToggles() {
-      const st = !this.ctx ? 'locked' : this.prefs.muted ? 'muted' : 'on';
-      document.querySelectorAll('[data-audio-toggle]').forEach((b) => {
-        b.dataset.state = st;
-        b.innerHTML = ND.icon(st === 'on' ? 'sound' : 'mute') + (b.dataset.label ? `<span>${st === 'locked' ? 'Click to enable sound' : st === 'muted' ? 'Sound off' : 'Sound on'}</span>` : '');
-        b.title = st === 'locked' ? 'Sound starts after your first click' : st === 'muted' ? 'Unmute sound' : 'Mute sound';
-      });
-    },
 
     // ---------- music ----------
     // id: menu | select | city | battle | victory | defeat; fid gives faction colour where the theme uses it.

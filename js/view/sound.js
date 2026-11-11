@@ -30,7 +30,6 @@
       A.initialize();
       // interface clicks and hovers
       document.addEventListener('click', (e) => {
-        if (e.target.closest('[data-audio-toggle]')) { A.toggleMute(); return; }
         const el = e.target.closest(INTERACTIVE);
         if (!el || el.disabled || el.matches('[data-screen], [data-cmd="close"], .fs-card')) return; // screens/cards have their own sounds
         A.sfx(el.matches(TABLIKE) ? 'tab' : 'click');
@@ -58,7 +57,7 @@
       document.addEventListener('change', (e) => {
         const d = e.target.dataset || {};
         if (d.audioVol) SOUND.preview(d.audioVol);
-        if (d.audioFlag) { A.setPref(d.audioFlag, e.target.checked); if (!e.target.checked || d.audioFlag === 'muted') return; SOUND.preview(d.audioFlag.replace('On', '')); }
+        if (d.audioFlag) { A.setPref(d.audioFlag, e.target.checked); if (!e.target.checked) return; SOUND.preview(d.audioFlag.replace('On', '')); }
       });
 
       // full screens: sweep in, sweep out, and the right music
@@ -73,7 +72,7 @@
       UI.start = (g) => { start(g); setTimeout(sync, 0); };
       // opening screens
       const M = ND.Main, showStart = M.showStart.bind(M), showSetup = M.showSetup.bind(M);
-      M.showStart = () => { showStart(); SOUND.picked = false; A.renderToggles(); sync(); };
+      M.showStart = () => { showStart(); SOUND.picked = false; sync(); };
       M.showSetup = () => { showSetup(); A.sfx('sweep'); sync(); };
       const TT = ND.Title, tshow = TT.show.bind(TT);
       TT.show = (stage) => { tshow(stage); SOUND.picked = false; sync(); };
@@ -88,9 +87,8 @@
           <output>${Math.round(P[k] * 100)}%</output><span class="small dim">${hint}</span></div>`;
       return `<div class="card set-card aud-card">
         ${ND.Audio.ctx ? '' : `<div class="d-status st-warn">${ND.icon('mute')}<span>Sound starts after your first click or key press (browser rule).</span></div>`}
-        <label class="check big"><input type="checkbox" data-audio-flag="muted" ${P.muted ? 'checked' : ''}> Mute all sound</label>
         ${slider('master', 'Master', null, 'Overall level')}
-        ${slider('music', 'Music', 'musicOn', 'Synthesised score — changes with the screen and your faction')}
+        ${slider('music', 'Music', null, 'Title and gameplay themes; battle, victory and defeat music')}
         ${slider('sfx', 'Sound effects', 'sfxOn', 'Interface and gameplay feedback')}
         ${slider('ambient', 'Ambience', 'ambientOn', 'City soundscape — follows the district you select')}
         <p class="small dim">Release a slider to hear a preview. Preferences are saved in this browser and apply to every game.</p></div>`;
