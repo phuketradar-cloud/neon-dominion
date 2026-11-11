@@ -21,3 +21,9 @@ live by `js/view/audio.js` (Web Audio API).
 Put the file in `assets/audio/music/` and set it in `TRACK_FILES` (`menu`, `select`, `city`, `battle`,
 `victory`, `defeat`); `null` keeps the synthesised theme. `serve.js` serves `.ogg`, `.mp3` and `.wav` with
 byte ranges so tracks can resume mid-way.
+
+## Faction stingers
+
+`sfx/faction-<fid>.mp3` (syndicate, legion, cult, mutants, shadow, reapers) plays when a faction card is picked.
+They are decoded after the first key press, trimmed of leading silence and levelled to the same loudness
+automatically (`loadFactionSfx` in `js/view/audio.js`). A missing file falls back to a soft sweep.

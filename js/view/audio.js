@@ -12,14 +12,14 @@
   };
   const deg = (scale, d) => { const n = SCALES[scale], o = Math.floor(d / 7); return n[((d % 7) + 7) % 7] + 12 * o; };
 
-  // Each faction colours the faction-select and city music and owns a short signature motif.
+  // Each faction colours the synthesised music (battle/victory themes and any theme without a recording).
   const FLAVOR = {
-    syndicate: { root: 41, scale: 'dorian', arp: 'triangle', extra: 'bell', cutoff: 2600, motif: [0, 4, 7, 11], motifWave: 'triangle' },
-    legion: { root: 38, scale: 'aeolian', arp: 'sawtooth', extra: 'metal', cutoff: 1500, motif: [0, 0, 7, 3], motifWave: 'sawtooth', snare: true },
-    cult: { root: 44, scale: 'phrygian', arp: 'square', extra: 'glitch', cutoff: 3200, motif: [0, 1, 7, 12], motifWave: 'square' },
-    mutants: { root: 37, scale: 'harmonic', arp: 'sawtooth', extra: 'wobble', cutoff: 1100, motif: [0, 3, 1, 6], motifWave: 'sawtooth' },
-    shadow: { root: 39, scale: 'aeolian', arp: 'sine', extra: null, cutoff: 900, motif: [0, 7, 3, 2], motifWave: 'sine' },
-    reapers: { root: 40, scale: 'aeolian', arp: 'sawtooth', extra: 'dist', cutoff: 1800, motif: [0, 3, 5, 0], motifWave: 'square', snare: true },
+    syndicate: { root: 41, scale: 'dorian', arp: 'triangle', extra: 'bell', cutoff: 2600 },
+    legion: { root: 38, scale: 'aeolian', arp: 'sawtooth', extra: 'metal', cutoff: 1500, snare: true },
+    cult: { root: 44, scale: 'phrygian', arp: 'square', extra: 'glitch', cutoff: 3200 },
+    mutants: { root: 37, scale: 'harmonic', arp: 'sawtooth', extra: 'wobble', cutoff: 1100 },
+    shadow: { root: 39, scale: 'aeolian', arp: 'sine', extra: null, cutoff: 900 },
+    reapers: { root: 40, scale: 'aeolian', arp: 'sawtooth', extra: 'dist', cutoff: 1800, snare: true },
   };
   const NEUTRAL = { root: 38, scale: 'aeolian', arp: 'triangle', extra: null, cutoff: 1400 };
 
@@ -106,6 +106,7 @@
       this.timer = setInterval(() => this.tick(), 25);
       if (this.wanted) { const w = this.wanted; this.wanted = null; this.playMusic(w.id, w.fid); }
       if (this.ambWanted) this.playAmbient();
+      this.loadFactionSfx();
     },
     get running() { return !!this.ctx && this.ctx.state === 'running'; },
 
@@ -164,6 +165,26 @@
       const until = this.ctx.currentTime + 0.15;
       if (this.song) this.song.tick(until);
       this.fading = this.fading.filter((s) => { if (s.done()) { s.dispose(); return false; } s.tick(until); return true; });
+    },
+
+    // ---------- recorded faction stingers ----------
+    // Decoded once after unlock. Each is trimmed of leading silence and levelled to the same loudness, since the
+    // files arrive at very different levels (measured RMS 0.03–0.16).
+    FACTION_SFX: (fid) => `assets/audio/sfx/faction-${fid}.mp3`,
+    fsfx: {},
+    lastStinger: null,
+    async loadFactionSfx() {
+      for (const F of ND.FACTIONS) {
+        try {
+          const buf = await this.ctx.decodeAudioData(await (await fetch(this.FACTION_SFX(F.id))).arrayBuffer());
+          const chs = [...Array(buf.numberOfChannels).keys()].map((k) => buf.getChannelData(k)), len = buf.length;
+          let start = 0, peak = 0, ss = 0;
+          while (start < len && chs.every((d) => Math.abs(d[start]) < 0.01)) start++;
+          for (const d of chs) for (let i = start; i < len; i++) { const a = Math.abs(d[i]); if (a > peak) peak = a; ss += a * a; }
+          const rms = Math.sqrt(ss / Math.max(1, (len - start) * chs.length)) || 1; // all channels, so wide stereo is not under-read
+          this.fsfx[F.id] = { buf, offset: Math.max(0, start / buf.sampleRate - 0.005), gain: Math.min(0.09 / rms, 0.8 / (peak || 1)) };
+        } catch (e) { /* missing or undecodable: a soft sweep is used instead */ }
+      }
     },
 
     // ---------- sound effects ----------
@@ -397,14 +418,15 @@
       [0, 7, 12].forEach((m) => tone(t, { f: mtof(50 + m), w: 'sawtooth', a: 0.25, v: 0.025, d: 0.9, lp: 1400, rv: 0.5 }));
     },
     faction: (t, o) => {
-      const F = FLAVOR[o.fid] || NEUTRAL, base = F.root + 24;
-      (F.motif || [0, 7]).forEach((m, i) => tone(t + i * 0.11, { f: mtof(base + m), w: F.motifWave || 'triangle', a: 0.005, v: 0.05, d: 0.35, lp: F.cutoff * 1.5, rv: 0.4 }));
-      kick(t, 0.2);
-      if (F.extra === 'metal') metal(t + 0.33, 0.05);
-      if (F.extra === 'glitch') for (let i = 0; i < 6; i++) tone(t + 0.3 + i * 0.025, { f: 1500 + Math.random() * 3000, w: 'square', v: 0.015, d: 0.02 });
-      if (F.extra === 'wobble') noise(t + 0.2, { f: 250, f2: 1600, g: 0.4, q: 7, v: 0.05, a: 0.2, d: 0.3 });
-      if (F.extra === 'dist') tone(t, { f: mtof(F.root), w: 'sawtooth', v: 0.06, d: 0.5, lp: 600 });
-      if (F.extra === 'bell') [1, 2.76].forEach((p) => tone(t + 0.4, { f: mtof(base + 12) * p, v: 0.025, d: 1, rv: 0.5 }));
+      const c = A.ctx, s = A.fsfx[o.fid];
+      if (A.lastStinger) { const p = A.lastStinger; p.g.gain.setTargetAtTime(0, t, 0.04); p.src.stop(t + 0.3); } // picking quickly: cut the previous one
+      if (!s) { SFX.sweep(t); return; }
+      const src = c.createBufferSource(), g = c.createGain();
+      src.buffer = s.buf; g.gain.value = s.gain;
+      src.connect(g); g.connect(A.bus.sfx);
+      src.start(t, s.offset);
+      A.lastStinger = { src, g };
+      src.onended = () => { if (A.lastStinger && A.lastStinger.src === src) A.lastStinger = null; };
     },
     resUp: (t) => notes(t, [84, 88, 91], { v: 0.03, d: 0.18, step: 0.06, w: 'triangle' }),
     resDown: (t) => notes(t, [52, 47], { v: 0.04, d: 0.2, step: 0.09, w: 'triangle', lp: 900 }),
