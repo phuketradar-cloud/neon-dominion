@@ -120,7 +120,7 @@
         ctx.save();
         ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = s * 0.08; ctx.shadowOffsetY = s * 0.03;
         const base = ctx.createLinearGradient(0, y, 0, y + h);
-        base.addColorStop(0, '#1f2c3e'); base.addColorStop(1, '#131c29');
+        base.addColorStop(0, '#21334d'); base.addColorStop(1, '#111a29');
         ctx.fillStyle = base; rr(ctx, x, y, w, h, rad); ctx.fill();
         ctx.restore();
         ctx.save();
@@ -145,11 +145,11 @@
         }
         if (heat != null) { ctx.fillStyle = ND.hexA(heatCol, 0.08 + heat * 0.62); ctx.fillRect(x, y, w, h); }
 
-        // street glow + building
-        const light = oc || '#7f93ab';
+        // street glow + building (unowned blocks glow a cool night-city blue)
+        const light = oc || '#5aaef0';
         const ground = y + h * 0.66;
         const halo = ctx.createRadialGradient(x + w / 2, ground, 1, x + w / 2, ground, w * 0.5);
-        halo.addColorStop(0, ND.hexA(light, oc ? 0.22 : 0.08)); halo.addColorStop(1, 'transparent');
+        halo.addColorStop(0, ND.hexA(light, oc ? 0.26 : 0.13)); halo.addColorStop(1, 'transparent');
         ctx.fillStyle = halo; ctx.fillRect(x, y, w, h);
         ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(x, ground, w, h * 0.04);
         ND.drawBuilding(ctx, d.type, x + w / 2, ground, s * 0.62, light, d.id + 7);
@@ -238,7 +238,7 @@
 
         // frame
         ctx.lineWidth = 1;
-        ctx.strokeStyle = oc ? ND.hexA(oc, 0.45) : 'rgba(120,140,165,.18)';
+        ctx.strokeStyle = oc ? ND.hexA(oc, 0.5) : 'rgba(110,170,230,.22)';
         rr(ctx, x + 0.5, y + 0.5, w - 1, h - 1, rad); ctx.stroke();
 
         if (moveSet && moveSet.has(d.id)) {

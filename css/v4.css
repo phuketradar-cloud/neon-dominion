@@ -1,0 +1,151 @@
+/* V4 skin — "command console" look for the city screen: glass panels with metallic edges and corner brackets,
+   a larger resource HUD, an angular End Turn button and command cards with clear available / unavailable states.
+   Presentation only: loaded after v3.css, no layout or behaviour changes beyond sizes. */
+:root {
+  --v4-edge: rgba(98, 196, 255, .24);
+  --v4-edge-hi: rgba(140, 222, 255, .7);
+  --v4-glass: linear-gradient(180deg, rgba(25, 38, 61, .95), rgba(11, 18, 31, .97));
+  --v4-inset: inset 0 1px 0 rgba(170, 225, 255, .10), inset 0 -1px 0 rgba(0, 0, 0, .5);
+  --v4-drop: 0 14px 30px rgba(0, 0, 0, .45);
+  /* four short brackets in the corners, drawn as background layers so no pseudo-elements are needed */
+  --v4-corners:
+    linear-gradient(var(--v4-edge-hi), var(--v4-edge-hi)) 0 0 / 18px 2px,
+    linear-gradient(var(--v4-edge-hi), var(--v4-edge-hi)) 0 0 / 2px 18px,
+    linear-gradient(var(--v4-edge-hi), var(--v4-edge-hi)) 100% 100% / 18px 2px,
+    linear-gradient(var(--v4-edge-hi), var(--v4-edge-hi)) 100% 100% / 2px 18px;
+}
+#game { background: radial-gradient(1200px 700px at 50% 0%, rgba(42, 92, 150, .18), transparent 70%); }
+
+/* ---------- panel chrome ---------- */
+#topbar, #game .side-card, #center, #right .ctx, #actions {
+  border: 1px solid var(--v4-edge); border-radius: 12px;
+  background: var(--v4-corners), var(--v4-glass); background-repeat: no-repeat;
+  box-shadow: var(--v4-inset), var(--v4-drop);
+}
+#game .fid-card { background: var(--v4-corners), linear-gradient(180deg, color-mix(in srgb, var(--fc) 26%, rgba(25, 38, 61, .95)), rgba(11, 18, 31, .97) 60%); background-repeat: no-repeat; }
+#center { background: var(--v4-corners), radial-gradient(ellipse at 50% 42%, rgba(38, 70, 112, .55), transparent 72%), var(--v4-glass); background-repeat: no-repeat; }
+button.side-card:hover { box-shadow: var(--v4-inset), 0 0 0 1px var(--v4-edge-hi), 0 0 22px rgba(66, 213, 232, .18); }
+.sc-h { color: #b9cbe2; letter-spacing: 1.6px; }
+.sc-h .ico { filter: drop-shadow(0 0 6px rgba(66, 213, 232, .6)); }
+
+/* ---------- top HUD ---------- */
+#topbar { padding: 8px 12px 8px 16px; }
+#topbar .res { padding: 5px 14px 5px 6px; column-gap: 10px; background: rgba(6, 12, 22, .72); border: 1px solid rgba(98, 196, 255, .14); border-radius: 10px; }
+#topbar .res .ico { width: 36px; height: 36px; padding: 8px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, currentColor 30%, transparent), color-mix(in srgb, currentColor 6%, transparent) 72%);
+  box-shadow: 0 0 14px color-mix(in srgb, currentColor 30%, transparent), inset 0 0 0 1px color-mix(in srgb, currentColor 35%, transparent); }
+#topbar .res-k { display: none; } /* the icon and tooltip name the resource */
+#topbar .res-row { flex-direction: column; align-items: flex-start; gap: 0; }
+#topbar .res-v { font: 700 23px/1.05 var(--f-num); letter-spacing: .3px; }
+#topbar .res-d { font: 600 12px var(--f-num); white-space: nowrap; }
+#topbar .res { flex: none; }
+#topbar .res-d::after { content: " / turn"; color: var(--text2); font-weight: 500; }
+#topbar .pill { height: 40px; padding: 0 12px; background: rgba(6, 12, 22, .72); border: 1px solid rgba(98, 196, 255, .14); }
+#topbar .pill b { font-size: 18px; }
+#topbar .pill .lbl { display: none; } /* icon + number, the tooltip names it */
+#topbar #rdpill { flex: 0 1 auto; min-width: 118px; white-space: nowrap; }
+#topbar .nav-b { height: 42px; padding: 0 10px; border-radius: 9px; color: #9fb2cc; }
+#topbar .nav-b .ico { width: 22px; height: 22px; }
+#topbar .nav-b:hover { background: rgba(66, 213, 232, .12); color: #fff; box-shadow: inset 0 0 0 1px rgba(66, 213, 232, .35); }
+#topbar .nav-b:hover .ico { filter: drop-shadow(0 0 6px rgba(66, 213, 232, .7)); }
+
+/* End Turn: angular red command button */
+#btn-end {
+  --cut: 14px;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  border: 0; border-radius: 0; padding: 12px 28px 12px 24px;
+  background: linear-gradient(180deg, #ff5a6a 0%, #d22a40 45%, #8e1426 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 170, 180, .55), inset 0 2px 0 rgba(255, 255, 255, .25);
+  filter: drop-shadow(0 0 12px rgba(255, 60, 85, .45));
+  font: 700 20px var(--f-head); letter-spacing: 3px; color: #fff; text-shadow: 0 0 10px rgba(255, 150, 160, .7);
+  transition: filter .15s, transform .15s;
+}
+#btn-end:hover:not(:disabled) { background: linear-gradient(180deg, #ff7381 0%, #e23850 45%, #a01a2e 100%); filter: drop-shadow(0 0 18px rgba(255, 70, 95, .75)); transform: translateY(-1px); box-shadow: inset 0 0 0 1px rgba(255, 190, 198, .7), inset 0 2px 0 rgba(255, 255, 255, .3); }
+#btn-end:disabled { filter: grayscale(.6) brightness(.7); }
+
+/* ---------- left column ---------- */
+.fid-art canvas { box-shadow: 0 0 0 2px var(--fc), 0 0 24px color-mix(in srgb, var(--fc) 40%, transparent); }
+.fid-name { font-size: 24px; text-shadow: 0 0 16px color-mix(in srgb, var(--fc) 45%, transparent); }
+.fid-chips span { background: rgba(6, 12, 22, .6); box-shadow: inset 0 0 0 1px rgba(98, 196, 255, .1); }
+.treasury-mini .tm-row { padding: 3px 2px; border-bottom: 1px solid rgba(255, 255, 255, .04); }
+.treasury-mini .tm-row b { font-size: 15px; }
+.rk-row { padding: 6px 8px; }
+.rk-row.me { background: linear-gradient(90deg, rgba(66, 213, 232, .2), rgba(66, 213, 232, .03)); box-shadow: inset 2px 0 0 var(--accent), inset 0 0 0 1px rgba(66, 213, 232, .25); }
+
+/* ---------- right panel ---------- */
+.ctx-hero { height: clamp(130px, 33vh, 380px); box-shadow: inset 0 0 0 1px rgba(140, 222, 255, .18); }
+.hp-name { font-size: 30px; text-shadow: 0 2px 12px rgba(0, 0, 0, .8); }
+.ctx-tabs { background: rgba(6, 12, 22, .7); box-shadow: inset 0 0 0 1px rgba(98, 196, 255, .12); }
+.ctx-tab.on { background: linear-gradient(180deg, rgba(66, 213, 232, .28), rgba(66, 213, 232, .1)); box-shadow: inset 0 0 0 1px rgba(66, 213, 232, .55); color: #fff; }
+.ctx .tile { padding: 10px 12px; background: linear-gradient(180deg, rgba(20, 32, 52, .9), rgba(8, 14, 26, .9)); box-shadow: inset 0 0 0 1px rgba(98, 196, 255, .14); border-radius: 10px; }
+.ctx .tile-v { font-size: 22px; }
+.ctx .tile-v.small { font-size: 16px; }
+.ctx .tile-k .ico { filter: drop-shadow(0 0 5px rgba(66, 213, 232, .55)); }
+.ctx .meter { height: 6px; }
+.ctx .mine { font-size: 14px; padding: 10px 12px; background: linear-gradient(90deg, rgba(66, 213, 232, .16), rgba(66, 213, 232, .04)); border: 0; box-shadow: inset 0 0 0 1px rgba(66, 213, 232, .3); }
+.d-status { border-radius: 10px; }
+
+/* ---------- command cards ---------- */
+#actions { padding: 10px 12px 12px; }
+.act-head .tabs { background: rgba(6, 12, 22, .7); box-shadow: inset 0 0 0 1px rgba(98, 196, 255, .12); }
+.act-head .tab.on { background: linear-gradient(180deg, rgba(66, 213, 232, .3), rgba(66, 213, 232, .1)); box-shadow: inset 0 0 0 1px rgba(66, 213, 232, .55); color: #fff; }
+#actions .act {
+  min-height: 124px; padding: 12px 12px 10px; border-radius: 12px; row-gap: 3px; grid-template-columns: 44px minmax(0, 1fr); column-gap: 10px;
+  background: linear-gradient(180deg, rgba(30, 48, 76, .92), rgba(12, 20, 36, .96));
+  box-shadow: inset 0 0 0 1px rgba(66, 213, 232, .45), inset 0 1px 0 rgba(170, 225, 255, .14), 0 0 16px rgba(66, 213, 232, .10);
+}
+#actions .act:hover:not(:disabled) { transform: translateY(-3px); box-shadow: inset 0 0 0 2px var(--accent), 0 0 26px rgba(66, 213, 232, .32), 0 14px 26px rgba(0, 0, 0, .45); }
+#actions .act:active:not(:disabled) { transform: translateY(-1px); }
+#actions .act-ico { width: 44px; height: 44px; border-radius: 11px; background: radial-gradient(circle at 50% 35%, rgba(66, 213, 232, .45), rgba(66, 213, 232, .1)); box-shadow: inset 0 0 0 1px rgba(66, 213, 232, .55), 0 0 14px rgba(66, 213, 232, .25); color: #dffaff; }
+#actions .act-ico .ico { width: 24px; height: 24px; }
+#actions .act-l { font-size: 17px; }
+#actions .act-foot { margin-top: auto; padding-top: 7px; border-top: 1px solid rgba(255, 255, 255, .07); align-self: end; }
+#actions .act-e { font-size: 14px; }
+#actions .act-c { font-size: 13px; }
+/* unavailable: red-tinted, reason in plain sight, still readable */
+#actions .act.off {
+  background: linear-gradient(180deg, rgba(92, 26, 40, .6), rgba(16, 20, 34, .96) 62%);
+  box-shadow: inset 0 0 0 1px rgba(240, 107, 117, .38);
+}
+#actions .act.off > :not(.act-r) { opacity: .62; }
+#actions .act.off .act-ico { background: rgba(240, 107, 117, .14); box-shadow: inset 0 0 0 1px rgba(240, 107, 117, .4); color: #f3a2aa; }
+#actions .act.off .act-r { color: #ff8f99; font-weight: 600; }
+
+/* ---------- map surroundings ---------- */
+.mt-b { background: rgba(6, 12, 22, .82); box-shadow: inset 0 0 0 1px rgba(98, 196, 255, .16); }
+.mt-b.on { background: linear-gradient(180deg, #5fe3f3, #2bb8cc); color: #04161b; box-shadow: 0 0 14px rgba(66, 213, 232, .45); }
+#tooltip { border: 1px solid var(--v4-edge); border-radius: 12px; background: var(--v4-corners), rgba(10, 17, 30, .96); background-repeat: no-repeat; box-shadow: 0 14px 30px rgba(0, 0, 0, .55), 0 0 18px rgba(66, 213, 232, .12); }
+
+/* ---------- smaller screens: keep everything on one screen ---------- */
+#topbar #resources { flex: none; } /* never squeeze the chips on top of the stats */
+@media (max-width: 1500px) {
+  #topbar .nav-b { padding: 0 6px; }
+  #actions .act { grid-template-columns: 34px minmax(0, 1fr); column-gap: 8px; }
+  #actions .act-ico { width: 34px; height: 34px; }
+  #actions .act-ico .ico { width: 20px; height: 20px; }
+  #actions .act-l { font-size: 14px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  /* narrow cards: effect on one line, the full cost on the next */
+  #actions .act-foot { flex-direction: column; align-items: flex-start; gap: 1px; padding-top: 5px; }
+  #actions .act-c { flex-wrap: nowrap; white-space: nowrap; font-size: 12px; gap: 4px; }
+  #topbar .res-d::after { content: ""; }
+  #topbar .res-v { font-size: 20px; }
+  #topbar .res .ico { width: 32px; height: 32px; padding: 7px; }
+  #btn-end { padding: 10px 18px; font-size: 17px; letter-spacing: 2px; }
+}
+@media (max-height: 820px) {
+  #actions .act { min-height: 96px; padding: 9px 10px 8px; }
+  #actions .act-d { display: none; } /* the full description stays in the card's tooltip; the map needs the height */
+  #actions .act.off .act-e { display: none; } /* an unavailable action shows why, not what it would do */
+  #actions .act-ico { width: 38px; height: 38px; }
+  .ctx-hero { height: clamp(120px, 22vh, 200px); }
+  .ctx .tile-v { font-size: 18px; }
+  /* the left column has to fit identity, forecast and all six ranks */
+  #topbar { padding: 5px 10px 5px 12px; }
+  #topbar .res { padding: 3px 12px 3px 5px; }
+  #topbar .res .ico { width: 30px; height: 30px; padding: 6px; }
+  #topbar .res-v { font-size: 19px; }
+  #topbar .pill, #topbar .nav-b { height: 36px; }
+  #btn-end { padding: 9px 16px; }
+  .rk-row { padding: 4px 6px; }
+  .treasury-mini .tm-row { padding: 1px 2px; }
+}
