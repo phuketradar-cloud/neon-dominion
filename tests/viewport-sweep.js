@@ -8,6 +8,11 @@
   const check = async (name) => { await wait(60); const r = ndViewportCheck(); out.checked++; if (!r.ok) out.failures[name] = r.problems.slice(0, 6); };
   const U = ND.UI, S = ND.Screens;
   try {
+    // title splash, main menu and its panels
+    ND.Title.show('press'); await check('title/press');
+    ND.Title.show('menu'); await check('title/menu');
+    for (const p of ['load', 'settings', 'credits']) { ND.Title.panel = p; ND.Title.render(); await check('title/' + p); }
+    ND.Title.panel = null;
     // opening screens
     ND.Main.showStart(); await check('start');
     ND.Main.setup = null; ND.Main.showSetup(); await check('setup');

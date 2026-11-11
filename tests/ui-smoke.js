@@ -10,6 +10,13 @@
   try {
     const U = ND.UI, S = ND.Screens;
     // faction selection → setup → start (without touching the autosave: we start the game ourselves)
+    // title menu → New Game → faction screen → back to the menu
+    ND.Title.show('menu'); await wait(50);
+    click('#title [data-title="new"]'); await wait(50);
+    checks.titleNewGame = !$('#start').classList.contains('hidden') && $('#title').classList.contains('hidden');
+    click('#btn-menu'); await wait(50);
+    checks.titleBack = !$('#title').classList.contains('hidden');
+    click('#title [data-title="credits"]'); checks.titlePanel = !!$('#title .ti-credits');
     ND.Main.showStart(); await wait(50);
     click('#start .fs-card[data-fid="legion"]'); checks.pickFaction = ND.Main.picked === 'legion';
     click('#btn-next'); await wait(50); checks.setupScreen = !$('#setupscr').classList.contains('hidden');

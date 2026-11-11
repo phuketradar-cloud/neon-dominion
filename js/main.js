@@ -20,21 +20,18 @@
     // ---------- faction selection ----------
     showStart() {
       $('#setupscr').classList.add('hidden');
+      $('#title').classList.add('hidden');
       $('#start').classList.remove('hidden');
       this.renderStart();
     },
     renderStart() {
       const F = ND.FDEF[this.picked], P = PITCH[this.picked], TH = ND.FACTION_THEME[this.picked];
-      const auto = ND.Save.meta('auto');
-      const slots = ['1', '2', '3'].map((s) => [s, ND.Save.meta(s)]).filter((x) => x[1]);
       $('#start').innerHTML = `
         <header class="menu-head">
           <div class="brand"><span class="brand-mark"></span><span class="brand-t">NEON <b>DOMINION</b></span></div>
           <div class="menu-right">
             <button class="btn audio-tg" data-audio-toggle data-label="1"></button>
-            <button class="btn" id="btn-tutorial" data-icon="manual" title="Interactive tutorial in Thai (separate practice game)">Tutorial · บทเรียน</button>
-            ${slots.map(([s, m]) => `<button class="btn" data-load="${s}" title="Load slot ${s}">Slot ${s}: T${m.turn} ${esc(ND.FDEF[m.faction].short)}</button>`).join('')}
-            <button class="btn primary" id="btn-continue" ${auto ? '' : 'disabled'} title="${auto ? `Turn ${auto.turn} · ${esc(ND.FDEF[auto.faction].name)}` : 'No autosave yet'}">Continue${auto ? ` · T${auto.turn}` : ''}</button>
+            <button class="btn" id="btn-menu" title="Back to the main menu (Esc)">‹ Main menu</button>
           </div>
         </header>
         <main class="fs-stage" style="--fc:${F.color}">
@@ -72,6 +69,7 @@
         this.setup = { difficulty: 'normal', victory: JSON.parse(JSON.stringify(ND.VICTORY_DEFAULTS)), seed: Math.floor(Math.random() * 1e9), adv: false };
       }
       $('#start').classList.add('hidden');
+      $('#title').classList.add('hidden');
       $('#setupscr').classList.remove('hidden');
       this.renderSetup();
     },
@@ -138,15 +136,13 @@
 
     init() {
       ND.UI.init();
+      ND.Title.init();
       ND.Sound.init();
       document.addEventListener('click', (e) => {
         const card = e.target.closest('#start .fs-card');
         if (card) { this.picked = card.dataset.fid; this.renderStart(); return; }
         if (e.target.closest('#btn-next')) { this.setup = null; this.showSetup(); return; }
-        if (e.target.closest('#btn-tutorial')) { ND.Tutorial.startGame(); return; }
-        if (e.target.closest('#btn-continue')) { const g = ND.Save.load('auto'); if (g) ND.UI.start(g); return; }
-        const ld = e.target.closest('#start [data-load]');
-        if (ld) { const g = ND.Save.load(ld.dataset.load); if (g) ND.UI.start(g); return; }
+        if (e.target.closest('#btn-menu')) { ND.Title.show('menu'); return; }
         const st = e.target.closest('#setupscr [data-setup]');
         if (st) {
           this.readSetupInputs();
@@ -164,7 +160,8 @@
         if (!$('#start').classList.contains('hidden')) this.paintArt();
         if (!$('#setupscr').classList.contains('hidden')) this.renderSetup();
       });
-      this.showStart();
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#start').classList.contains('hidden')) ND.Title.show('menu'); });
+      ND.Title.show();
     },
   };
 

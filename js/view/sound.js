@@ -11,6 +11,7 @@
   // Music and ambience follow whatever the player is looking at.
   const sync = () => {
     const UI = ND.UI, S = ND.Screens, g = UI && UI.g;
+    if (visible('#title')) { A.stopAmbient(); A.playMusic('menu'); return; }
     if (visible('#start')) { A.stopAmbient(); A.playMusic(SOUND.picked ? 'select' : 'menu', SOUND.picked ? ND.Main.picked : null); return; }
     if (visible('#setupscr')) { A.stopAmbient(); A.playMusic('select', ND.Main.picked); return; }
     if (!g || !visible('#game')) return;
@@ -74,6 +75,25 @@
       const M = ND.Main, showStart = M.showStart.bind(M), showSetup = M.showSetup.bind(M);
       M.showStart = () => { showStart(); SOUND.picked = false; A.renderToggles(); sync(); };
       M.showSetup = () => { showSetup(); A.sfx('sweep'); sync(); };
+      const TT = ND.Title, tshow = TT.show.bind(TT);
+      TT.show = (stage) => { tshow(stage); SOUND.picked = false; sync(); };
+    },
+
+    // Audio controls (Settings › Audio and the title menu); sliders and checkboxes are handled by the listeners above.
+    settingsHtml() {
+      const P = ND.Audio.prefs;
+      const slider = (k, label, onKey, hint) => `<div class="aud-row">
+          ${onKey ? `<label class="check"><input type="checkbox" data-audio-flag="${onKey}" ${P[onKey] ? 'checked' : ''}> ${label}</label>` : `<b>${label}</b>`}
+          <input type="range" min="0" max="100" step="1" value="${Math.round(P[k] * 100)}" data-audio-vol="${k}" aria-label="${label} volume">
+          <output>${Math.round(P[k] * 100)}%</output><span class="small dim">${hint}</span></div>`;
+      return `<div class="card set-card aud-card">
+        ${ND.Audio.ctx ? '' : `<div class="d-status st-warn">${ND.icon('mute')}<span>Sound starts after your first click or key press (browser rule).</span></div>`}
+        <label class="check big"><input type="checkbox" data-audio-flag="muted" ${P.muted ? 'checked' : ''}> Mute all sound</label>
+        ${slider('master', 'Master', null, 'Overall level')}
+        ${slider('music', 'Music', 'musicOn', 'Synthesised score — changes with the screen and your faction')}
+        ${slider('sfx', 'Sound effects', 'sfxOn', 'Interface and gameplay feedback')}
+        ${slider('ambient', 'Ambience', 'ambientOn', 'City soundscape — follows the district you select')}
+        <p class="small dim">Release a slider to hear a preview. Preferences are saved in this browser and apply to every game.</p></div>`;
     },
 
     preview(kind) {

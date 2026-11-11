@@ -91,6 +91,7 @@
       this.rtab = 'overview';
       $('#start').classList.add('hidden');
       $('#setupscr').classList.add('hidden');
+      $('#title').classList.add('hidden');
       $('#game').classList.remove('hidden');
       ND.Screens.close();
       ND.Screens.state = {}; // tabs/selections belong to the previous game
@@ -787,7 +788,7 @@
         case 'del': ND.Save.remove(arg); S.refresh(); return;
         case 'autosave': g.settings.autosave = $('#opt-autosave').checked; return;
         case 'autobrief': g.settings.autoBriefing = $('#opt-brief').checked; return;
-        case 'quit': this.closeModal(); S.close(); $('#game').classList.add('hidden'); ND.Main.showStart(); return;
+        case 'quit': this.closeModal(); S.close(); $('#game').classList.add('hidden'); ND.Title.show('menu'); return;
         default:
       }
     },
