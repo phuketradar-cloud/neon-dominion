@@ -43,7 +43,10 @@ button.side-card:hover { box-shadow: var(--v4-inset), 0 0 0 1px var(--v4-edge-hi
 #topbar .pill { height: 40px; padding: 0 12px; background: rgba(6, 12, 22, .72); border: 1px solid rgba(98, 196, 255, .14); }
 #topbar .pill b { font-size: 18px; }
 #topbar .pill .lbl { display: none; } /* icon + number, the tooltip names it */
-#topbar #rdpill { flex: 0 1 auto; min-width: 118px; white-space: nowrap; }
+/* the research pill is the one item that may shrink (ellipsis); everything else keeps its size, so nothing overlaps */
+#topbar .tb-stats { flex: 0 1 auto; min-width: 0; }
+#topbar #rdpill { flex: 0 1 auto; min-width: 44px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#topbar .tb-nav, #topbar #btn-end { flex: none; }
 #topbar .nav-b { height: 42px; padding: 0 10px; border-radius: 9px; color: #9fb2cc; }
 #topbar .nav-b .ico { width: 22px; height: 22px; }
 #topbar .nav-b:hover { background: rgba(66, 213, 232, .12); color: #fff; box-shadow: inset 0 0 0 1px rgba(66, 213, 232, .35); }
@@ -118,8 +121,18 @@ button.side-card:hover { box-shadow: var(--v4-inset), 0 0 0 1px var(--v4-edge-hi
 
 /* ---------- smaller screens: keep everything on one screen ---------- */
 #topbar #resources { flex: none; } /* never squeeze the chips on top of the stats */
-@media (max-width: 1500px) {
+/* compact HUD below 1800px: the full bar needs ~1700px at the large sizes */
+@media (max-width: 1800px) {
+  #topbar { gap: 8px; }
   #topbar .nav-b { padding: 0 6px; }
+  #topbar .res-d::after { content: ""; }
+  #topbar .res-v { font-size: 20px; }
+  #topbar .res { padding: 4px 10px 4px 5px; column-gap: 8px; }
+  #topbar .res .ico { width: 32px; height: 32px; padding: 7px; }
+  #topbar .pill { padding: 0 9px; }
+  #btn-end { padding: 10px 18px; font-size: 17px; letter-spacing: 2px; }
+}
+@media (max-width: 1500px) {
   #actions .act { grid-template-columns: 34px minmax(0, 1fr); column-gap: 8px; }
   #actions .act-ico { width: 34px; height: 34px; }
   #actions .act-ico .ico { width: 20px; height: 20px; }
@@ -127,10 +140,6 @@ button.side-card:hover { box-shadow: var(--v4-inset), 0 0 0 1px var(--v4-edge-hi
   /* narrow cards: effect on one line, the full cost on the next */
   #actions .act-foot { flex-direction: column; align-items: flex-start; gap: 1px; padding-top: 5px; }
   #actions .act-c { flex-wrap: nowrap; white-space: nowrap; font-size: 12px; gap: 4px; }
-  #topbar .res-d::after { content: ""; }
-  #topbar .res-v { font-size: 20px; }
-  #topbar .res .ico { width: 32px; height: 32px; padding: 7px; }
-  #btn-end { padding: 10px 18px; font-size: 17px; letter-spacing: 2px; }
 }
 @media (max-height: 820px) {
   #actions .act { min-height: 96px; padding: 9px 10px 8px; }
