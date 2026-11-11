@@ -1,13 +1,21 @@
-# Neon Dominion — Phases 1–5 (complete)
+# Neon Dominion
 
-2D cyberpunk turn-based territory-control strategy game. Plain HTML5/CSS/JavaScript, no build step, no dependencies.
+2D cyberpunk turn-based territory-control strategy game. Six factions fight for a 10×10 city with influence,
+units, combat, research, covert operations and diplomacy. Plain HTML5/CSS/JavaScript — no build step, no dependencies.
 
-## Run
+## Play
+
+**Locally** (needs [Node.js](https://nodejs.org)):
 
 ```
 node serve.js
 ```
-Then open http://localhost:8080. (Any static file server works.)
+Then open http://localhost:8080. Any static file server works.
+
+**Online:** the game is fully static, so it also runs from GitHub Pages (Settings › Pages › deploy from the `main` branch, root folder).
+
+Best on a screen of **1366×768 or larger**. Saves are kept in the browser's local storage (per browser and site).
+An interactive Thai tutorial is on the opening screen.
 
 ## Architecture
 
@@ -89,8 +97,9 @@ Technological victories did not occur in this sample. A human player shifts thes
 
 ## Audio
 
-All music, ambience and sound effects are synthesised live with the Web Audio API (`js/view/audio.js`) — no audio files,
-nothing to license. `js/view/sound.js` connects it to the game: music per screen (menu, faction select, city, battle,
+The title screens play `assets/audio/music/opening.mp3` and the city plays `assets/audio/music/gameplay.mp3`.
+Everything else — battle/victory/defeat themes, ambience and sound effects — is synthesised live with the Web Audio
+API (`js/view/audio.js`). `js/view/sound.js` connects it to the game: music per screen (menu, faction select, city, battle,
 victory, defeat) with crossfades and a faction flavour, interface sounds, a city soundscape that follows the selected
 district type, and sounds for real gameplay results (played only when an action succeeds). Sound starts after the
 player's first click or key press. Volumes and on/off switches live in **Settings › Audio** and the speaker button
